@@ -1,0 +1,15 @@
+{
+  "request_id": 8,
+  "body_type": "GetLayerDetails",
+  "body": {
+    "requests": [
+      {
+        "layer_id": 2,
+        "want_solo": false,
+        "want_group": true,
+        "want_attributes": false
+      }
+    ],
+    "max_texture_dimension": 16384
+  }
+}

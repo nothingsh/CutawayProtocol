@@ -1,0 +1,8 @@
+{
+  "request_id": 0,
+  "body_type": "Error",
+  "body": {
+    "code": "Busy",
+    "message": "another client is connected"
+  }
+}

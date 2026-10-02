@@ -1,0 +1,8 @@
+{
+  "request_id": 7,
+  "body_type": "Error",
+  "body": {
+    "code": "AppNotActive",
+    "message": "the app is not active"
+  }
+}

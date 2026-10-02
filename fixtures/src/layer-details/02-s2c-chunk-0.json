@@ -1,0 +1,348 @@
+{
+  "request_id": 3,
+  "body_type": "LayerDetailsChunk",
+  "body": {
+    "sequence": 0,
+    "details": [
+      {
+        "layer_id": 3,
+        "status": "Ok",
+        "group": {
+          "encoding": "Bgra8PremultipliedLzfse",
+          "pixel_width": 200,
+          "pixel_height": 24,
+          "bytes_per_row": 800,
+          "scale": 1.0,
+          "data": [
+            98,
+            118,
+            120,
+            50,
+            0,
+            75,
+            0,
+            0,
+            12,
+            0,
+            32,
+            0,
+            0,
+            10,
+            0,
+            48,
+            0,
+            0,
+            0,
+            56,
+            224,
+            24,
+            0,
+            16,
+            134,
+            0,
+            0,
+            0,
+            52,
+            188,
+            96,
+            14,
+            207,
+            1,
+            48,
+            129,
+            9,
+            0,
+            0,
+            76,
+            0,
+            0,
+            0,
+            0,
+            120,
+            17,
+            158,
+            150,
+            23,
+            0,
+            94,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            224,
+            209,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            128,
+            71,
+            15,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            16,
+            192,
+            255,
+            255,
+            255,
+            255,
+            255,
+            247,
+            127,
+            255,
+            255,
+            63,
+            254,
+            255,
+            1,
+            98,
+            118,
+            120,
+            36
+          ]
+        },
+        "attribute_groups": [
+          {
+            "id": "layer",
+            "title": "Layer",
+            "attributes": [
+              {
+                "id": "layer.frame",
+                "title": "Frame",
+                "value_type": "RectValue",
+                "value": {
+                  "value": {
+                    "origin": {
+                      "x": 96.5,
+                      "y": 108
+                    },
+                    "size": {
+                      "width": 200,
+                      "height": 24
+                    }
+                  }
+                }
+              },
+              {
+                "id": "layer.position",
+                "title": "Position",
+                "value_type": "PointValue",
+                "value": {
+                  "value": {
+                    "x": 196.5,
+                    "y": 120
+                  }
+                }
+              },
+              {
+                "id": "layer.shadowOffset",
+                "title": "Shadow Offset",
+                "value_type": "SizeValue",
+                "value": {
+                  "value": {
+                    "width": 0,
+                    "height": -3
+                  }
+                }
+              },
+              {
+                "id": "layer.opacity",
+                "title": "Opacity",
+                "value_type": "DoubleValue",
+                "value": {
+                  "value": 1.0
+                }
+              },
+              {
+                "id": "layer.hidden",
+                "title": "Hidden",
+                "value_type": "BoolValue",
+                "value": {
+                  "value": false
+                }
+              },
+              {
+                "id": "layer.backgroundColor",
+                "title": "Background Color"
+              },
+              {
+                "id": "layer.borderColor",
+                "title": "Border Color",
+                "value_type": "ColorValue",
+                "value": {
+                  "value": {
+                    "red": 0.0,
+                    "green": 0.0,
+                    "blue": 0.0,
+                    "alpha": 1.0
+                  }
+                }
+              },
+              {
+                "id": "layer.transform",
+                "title": "Transform",
+                "value_type": "TransformValue",
+                "value": {
+                  "value": {
+                    "m11": 1.0,
+                    "m12": 0.0,
+                    "m13": 0.0,
+                    "m14": 0.0,
+                    "m21": 0.0,
+                    "m22": 1.0,
+                    "m23": 0.0,
+                    "m24": 0.0,
+                    "m31": 0.0,
+                    "m32": 0.0,
+                    "m33": 1.0,
+                    "m34": 0.0,
+                    "m41": 0.0,
+                    "m42": 0.0,
+                    "m43": 0.0,
+                    "m44": 1.0
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "label",
+            "title": "Label",
+            "attributes": [
+              {
+                "id": "label.text",
+                "title": "Text",
+                "value_type": "StringValue",
+                "value": {
+                  "value": "Hello"
+                }
+              },
+              {
+                "id": "label.numberOfLines",
+                "title": "Number Of Lines",
+                "value_type": "IntValue",
+                "value": {
+                  "value": 1
+                }
+              },
+              {
+                "id": "label.textAlignment",
+                "title": "Text Alignment",
+                "value_type": "EnumValue",
+                "value": {
+                  "value": 1,
+                  "cases": [
+                    "left",
+                    "center",
+                    "right",
+                    "justified",
+                    "natural"
+                  ],
+                  "case_name": "center"
+                }
+              }
+            ]
+          },
+          {
+            "id": "view",
+            "title": "View",
+            "attributes": [
+              {
+                "id": "view.layoutMargins",
+                "title": "Layout Margins",
+                "value_type": "InsetsValue",
+                "value": {
+                  "value": {
+                    "top": 8.0,
+                    "left": 8.0,
+                    "bottom": 8.0,
+                    "right": 8.0
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

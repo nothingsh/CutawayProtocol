@@ -1,0 +1,10 @@
+/.tools/
+/.build/
+.DS_Store
+
+# Local agent configuration and working notes, not published
+/.claude/
+/.superpowers/
+/AGENTS.md
+/CLAUDE.md
+/docs/

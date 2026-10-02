@@ -1,0 +1,8 @@
+{
+  "request_id": 3,
+  "body_type": "StreamEnd",
+  "body": {
+    "status": "Completed",
+    "chunk_count": 2
+  }
+}

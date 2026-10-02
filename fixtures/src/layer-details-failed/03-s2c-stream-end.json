@@ -1,0 +1,12 @@
+{
+  "request_id": 8,
+  "body_type": "StreamEnd",
+  "body": {
+    "status": "Failed",
+    "chunk_count": 0,
+    "error": {
+      "code": "AppNotActive",
+      "message": "the app left the active state during capture"
+    }
+  }
+}

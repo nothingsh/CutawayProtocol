@@ -1,0 +1,33 @@
+{
+  "request_id": 4,
+  "body_type": "GetLayerDetails",
+  "body": {
+    "requests": [
+      {
+        "layer_id": 3,
+        "want_solo": true,
+        "want_group": true,
+        "want_attributes": false
+      },
+      {
+        "layer_id": 8,
+        "want_solo": false,
+        "want_group": true,
+        "want_attributes": false
+      },
+      {
+        "layer_id": 9,
+        "want_solo": false,
+        "want_group": true,
+        "want_attributes": true
+      },
+      {
+        "layer_id": 7,
+        "want_solo": false,
+        "want_group": false,
+        "want_attributes": false
+      }
+    ],
+    "max_texture_dimension": 16384
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "request_id": 5,
+  "body_type": "StreamEnd",
+  "body": {
+    "status": "Cancelled",
+    "chunk_count": 1
+  }
+}

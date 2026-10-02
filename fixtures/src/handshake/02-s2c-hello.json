@@ -1,0 +1,27 @@
+{
+  "request_id": 0,
+  "body_type": "Hello",
+  "body": {
+    "protocol": {
+      "major": 0,
+      "minor": 1
+    },
+    "role": "Server",
+    "app": {
+      "name": "Demo",
+      "bundle_id": "dev.cutaway.demo",
+      "app_version": "1.0",
+      "device_name": "iPhone 16",
+      "device_kind": "Phone",
+      "is_simulator": true,
+      "os_name": "iOS",
+      "os_version": "18.0",
+      "screen_size": {
+        "width": 393,
+        "height": 852
+      },
+      "screen_scale": 3.0,
+      "server_version": "0.1.0"
+    }
+  }
+}

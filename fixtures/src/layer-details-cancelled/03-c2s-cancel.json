@@ -1,0 +1,7 @@
+{
+  "request_id": 6,
+  "body_type": "Cancel",
+  "body": {
+    "target_request_id": 5
+  }
+}
