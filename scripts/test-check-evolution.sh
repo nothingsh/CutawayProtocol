@@ -14,7 +14,7 @@ mutate() { # python expression over the schema text `s`, result written to $work
   # The expression is evaluated with eval(). That is safe here: every expression
   # is a literal written in this file, never input from outside.
   /usr/bin/python3 - "$schema" "$work/new.fbs" "$1" <<'PY'
-import sys
+import re, sys
 s = open(sys.argv[1], encoding="utf-8").read()
 before = s
 s = eval(sys.argv[3])
@@ -38,8 +38,8 @@ expect() { # name, pass|fail, mutation, new version
 }
 
 expect "identical, same version"            pass 's' 0.1
-expect "append a table field, minor bump"   pass 's.replace("  masks_to_bounds: bool;", "  masks_to_bounds: bool;\n  corner_radius: double;")' 0.2
-expect "append a table field, no bump"      fail 's.replace("  masks_to_bounds: bool;", "  masks_to_bounds: bool;\n  corner_radius: double;")' 0.1
+expect "append a table field, minor bump"   pass 're.sub(r"(table LayerNode \{[^}]*)\}", r"\1  corner_radius: double;\n}", s)' 0.2
+expect "append a table field, no bump"      fail 're.sub(r"(table LayerNode \{[^}]*)\}", r"\1  corner_radius: double;\n}", s)' 0.1
 expect "append an enum value, minor bump"   pass 's.replace("  Internal = 5", "  Internal = 5,\n  Cancelled = 6")' 0.2
 expect "append a union member, minor bump"  pass 's.replace("LayerDetailsChunk, StreamEnd, Cancel, Error, AppStateChanged", "LayerDetailsChunk, StreamEnd, Cancel, Error, AppStateChanged, GetAppIcon2").replace("table GetAppIcon {}", "table GetAppIcon {}\ntable GetAppIcon2 {}")' 0.2
 expect "deprecate a field, minor bump"      pass 's.replace("  z_position: double;", "  z_position: double (deprecated);")' 0.2

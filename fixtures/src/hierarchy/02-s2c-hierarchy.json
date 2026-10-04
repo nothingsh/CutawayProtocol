@@ -97,7 +97,9 @@
         "z_position": 0.0,
         "hidden": false,
         "opacity": 1.0,
-        "masks_to_bounds": false
+        "masks_to_bounds": false,
+        "view_controller_class_name": "Demo.HomeViewController",
+        "view_controller_display_class_name": "HomeViewController"
       },
       {
         "id": 3,
@@ -145,7 +147,14 @@
         "z_position": 0.0,
         "hidden": false,
         "opacity": 1.0,
-        "masks_to_bounds": false
+        "masks_to_bounds": false,
+        "member_references": [
+          {
+            "owner_class_name": "Demo.HomeViewController",
+            "owner_display_class_name": "HomeViewController",
+            "name": "titleLabel"
+          }
+        ]
       },
       {
         "id": 4,
@@ -193,7 +202,14 @@
         "z_position": 0.0,
         "hidden": false,
         "opacity": 1.0,
-        "masks_to_bounds": true
+        "masks_to_bounds": true,
+        "member_references": [
+          {
+            "owner_class_name": "Demo.HomeViewController",
+            "owner_display_class_name": "HomeViewController",
+            "name": "cardView"
+          }
+        ]
       },
       {
         "id": 5,
@@ -239,7 +255,19 @@
         "z_position": 0.0,
         "hidden": true,
         "opacity": 0.5,
-        "masks_to_bounds": false
+        "masks_to_bounds": false,
+        "member_references": [
+          {
+            "owner_class_name": "Demo.CardView",
+            "owner_display_class_name": "CardView",
+            "name": "badgeLayer"
+          },
+          {
+            "owner_class_name": "Demo.HomeViewController",
+            "owner_display_class_name": "HomeViewController",
+            "name": "cardBadge"
+          }
+        ]
       },
       {
         "id": 6,
@@ -287,7 +315,14 @@
         "z_position": 0.0,
         "hidden": false,
         "opacity": 1.0,
-        "masks_to_bounds": true
+        "masks_to_bounds": true,
+        "member_references": [
+          {
+            "owner_class_name": "Demo.HomeViewController",
+            "owner_display_class_name": "HomeViewController",
+            "name": "scrollView"
+          }
+        ]
       },
       {
         "id": 7,
@@ -381,7 +416,14 @@
         "z_position": 0.0,
         "hidden": false,
         "opacity": 1.0,
-        "masks_to_bounds": false
+        "masks_to_bounds": false,
+        "member_references": [
+          {
+            "owner_class_name": "DMBaseViewController",
+            "owner_display_class_name": "DMBaseViewController",
+            "name": "_dividerLayer"
+          }
+        ]
       },
       {
         "id": 9,

@@ -3,7 +3,8 @@
 
 Usage: check-fixtures.py <fixtures/src>
 
-Per scenario: request ids, stream sequencing and chunk counts (P-REQ-01, 03),
+The hierarchy's order and its view controller and member reference fields
+(P-HIER-01, 03, 07 to 09). Per scenario: request ids, stream sequencing and chunk counts (P-REQ-01, 03),
 one detail per requested layer (P-DET-01), what each detail contains against
 what was asked (P-DET-02 to 04), and every image's size and data (P-DET-07,
 P-IMG-01, 02).
@@ -62,6 +63,18 @@ def main():
                     problem("hierarchy/" + name, "a node has id 0 (P-HIER-03)")
                 if parent != 0 and parent not in seen:
                     problem("hierarchy/" + name, "node %d appears before its parent %d (P-HIER-01)" % (node["id"], parent))
+                spot = "hierarchy/%s node %d" % (name, node.get("id", 0))
+                controller = ("view_controller_class_name" in node, "view_controller_display_class_name" in node)
+                if controller[0] != controller[1]:
+                    problem(spot, "view controller names must be given together (P-HIER-07)")
+                if any(controller) and "view_class_name" not in node:
+                    problem(spot, "only a layer that backs a view can back a view controller's root view (P-HIER-07)")
+                references = node.get("member_references", [])
+                if references and parent == 0:
+                    problem(spot, "a root layer has no ancestors to hold it (P-HIER-08)")
+                for reference in references:
+                    if not all(reference.get(key) for key in ("owner_class_name", "owner_display_class_name", "name")):
+                        problem(spot, "a member reference needs both class names and a name (P-HIER-09)")
                 seen.add(node["id"])
                 nodes[node["id"]] = node
     children = {}

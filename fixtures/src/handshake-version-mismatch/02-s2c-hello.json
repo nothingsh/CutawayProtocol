@@ -4,7 +4,7 @@
   "body": {
     "protocol": {
       "major": 0,
-      "minor": 1
+      "minor": 2
     },
     "role": "Server",
     "app": {
@@ -21,7 +21,7 @@
         "height": 852
       },
       "screen_scale": 3.0,
-      "server_version": "0.1.0"
+      "server_version": "0.2.0"
     }
   }
 }

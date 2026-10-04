@@ -100,6 +100,13 @@ table AppIcon {
 
 // ---- Hierarchy ----
 
+// 0.2: an instance variable that holds the layer, or the view the layer backs.
+table MemberReference {
+  owner_class_name: string;          // runtime name of the class that declares the variable
+  owner_display_class_name: string;  // human-readable name of that class
+  name: string;                      // the variable's name as declared
+}
+
 table LayerNode {
   id: ulong;
   parent_id: ulong;              // 0 for a window's root layer
@@ -115,13 +122,17 @@ table LayerNode {
   hidden: bool;
   opacity: float;
   masks_to_bounds: bool;
+  // 0.2
+  view_controller_class_name: string;  // set when the layer backs a view controller's root view
+  view_controller_display_class_name: string;
+  member_references: [MemberReference]; // nearest holder first
 }
 
 table GetHierarchy {}
 
 table Hierarchy {
   // Pre-order. A node's parent always appears before it.
-  // Siblings are ordered back to front.
+  // Siblings are ordered back to front: by zPosition, then by their order in sublayers.
   nodes: [LayerNode];
   key_window_id: ulong;          // 0 when there is no key window
 }

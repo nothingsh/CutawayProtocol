@@ -45,17 +45,17 @@ scripts/build-fixtures.sh fixtures/bin
 | Scenario | Content | Clauses verified |
 |---|---|---|
 | `handshake` | A successful handshake, after which the Server sends the current state | P-HELLO-01, 02; P-EVT-01, 02 |
-| `handshake-version-mismatch` | The Client's major version is 1; the Server still replies with its own `Hello` (0.1), then closes the connection | P-HELLO-02, 03 |
+| `handshake-version-mismatch` | The Client's major version is 1; the Server still replies with its own `Hello` (0.2), then closes the connection | P-HELLO-02, 03 |
 | `busy` | The only frame received when connecting to a Server that already has a Client | P-TRANS-03 |
 | `app-icon` | Getting the app icon | P-REQ-02; P-ICON-01; P-IMG-01 |
-| `hierarchy` | A hierarchy of one window and nine nodes | P-HIER-01 to 04, 06 |
+| `hierarchy` | A hierarchy of one window and nine nodes, with view controllers and member variables | P-HIER-01 to 04, 06 to 09 |
 | `layer-details` | Details of three layers in two chunks, ending normally | P-REQ-03; P-DET-01, 02, 04, 07; P-ATTR-01, 02 |
 | `layer-details-edge` | An omitted solo, an image with row padding, a failed capture with attributes, a request that wants nothing | P-DET-03, 04; P-IMG-02 |
 | `layer-details-cancelled` | A details stream cancelled after its first chunk | P-REQ-01, 04, 06 |
 | `app-not-active` | Requesting the hierarchy after the app goes to the background | P-APP-01; P-REQ-05 |
 | `layer-details-failed` | The app leaves the active state while a details stream is in progress | P-APP-01; P-EVT-02; P-REQ-05 |
 
-Clauses no fixture covers: P-HIER-05 (non-finite numbers sent as 0); P-DET-05 and P-DET-08 (scaling down oversized images); P-DET-06 (the chunk size limit); P-FRAME-03 (malformed frames); P-HELLO-05, 06 and P-REQ-08. These rely on each side's own tests.
+Clauses no fixture covers: in P-HIER-01, the ordering of siblings with different `zPosition` (it is already done on the wire; a fixture can only give the result, not the `sublayers` before sorting); P-HIER-05 and P-ATTR-05 (non-finite numbers sent as 0); P-HELLO-04 (a handshake with different minor versions); P-IMG-03 (`scale` is nominal); P-DET-05 and P-DET-08 (scaling down oversized images); P-DET-06 (the chunk size limit); P-FRAME-03 (malformed frames); P-HELLO-05, 06 and P-REQ-08. These rely on each side's own tests.
 
 ## Nodes of the `hierarchy` scenario
 
@@ -72,6 +72,20 @@ Clauses no fixture covers: P-HIER-05 (non-finite numbers sent as 0); P-DET-05 an
 | 9 | 2 | `CALayer` | `UIView` | 0, 0, 0, 0 | 300, 700 | Zero size |
 
 Except for node 8, `anchor_point` is 0.5, 0.5. In node 4's `transform`, m11 = m22 = 0.8660254037844387, m12 = 0.5, m21 = -0.5, and the rest is the same as the identity matrix. The other nodes' `transform` is the identity matrix.
+
+### View controllers and member variables (0.2)
+
+Node 2 backs the root view of the view controller `Demo.HomeViewController` (readable class name `HomeViewController`) (P-HIER-07); no other node has the view controller fields.
+
+| Node | `member_references` (readable name of the declaring class . variable name, nearest first) | Notes |
+|---|---|---|
+| 3 | `HomeViewController.titleLabel` | The holder is the view controller of ancestor node 2 |
+| 4 | `HomeViewController.cardView` | |
+| 5 | `CardView.badgeLayer`, `HomeViewController.cardBadge` | Two entries: the view of parent node 4 is nearer than the view controller of node 2; node 5 does not back a view, so the layer itself is referenced |
+| 6 | `HomeViewController.scrollView` | |
+| 8 | `DMBaseViewController._dividerLayer` | An Objective-C instance variable, underscore kept (P-HIER-09); it is declared by the superclass of `HomeViewController`, so its runtime class name differs from every ancestor's class names |
+
+Nodes 1, 2, 7 and 9 have no `member_references`. The runtime class names of the entries: `HomeViewController` is `Demo.HomeViewController`, `CardView` is `Demo.CardView`, and `DMBaseViewController` is the same in both.
 
 ## Images
 

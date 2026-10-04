@@ -1,0 +1,234 @@
+// Cutaway wire protocol. PROTOCOL.md is the normative description;
+// this file defines the payload of every frame.
+//
+// Evolution rules (PROTOCOL.md, section "Evolution"):
+//   - Only append fields to tables. Never change a field's type, reuse or remove it.
+//   - Only append values to enums and members to unions.
+//   - Structs never change.
+//   - Frame, Hello and Version keep their existing fields in every major version,
+//     so that a handshake between any two versions can always be read.
+
+namespace Cutaway.Wire;
+
+file_identifier "CTWY";
+
+// ---- Geometry (structs are fixed forever) ----
+
+struct Point { x: double; y: double; }
+struct Size { width: double; height: double; }
+struct Rect { origin: Point; size: Size; }
+struct Insets { top: double; left: double; bottom: double; right: double; }
+struct Color { red: float; green: float; blue: float; alpha: float; }
+
+// Row-major 4x4 matrix with the same layout as CATransform3D.
+struct Transform3D {
+  m11: double; m12: double; m13: double; m14: double;
+  m21: double; m22: double; m23: double; m24: double;
+  m31: double; m32: double; m33: double; m34: double;
+  m41: double; m42: double; m43: double; m44: double;
+}
+
+struct Version { major: ushort; minor: ushort; }
+
+// ---- Enums ----
+
+enum Role : ubyte { Client = 0, Server = 1 }
+
+enum ErrorCode : ushort {
+  Unknown = 0,
+  MalformedFrame = 1,
+  UnexpectedMessage = 2,
+  Busy = 3,
+  AppNotActive = 4,
+  Internal = 5
+}
+
+enum StreamStatus : ubyte { Completed = 0, Cancelled = 1, Failed = 2 }
+
+enum AppState : ubyte { Active = 0, Inactive = 1, Background = 2 }
+
+enum DeviceKind : ubyte { Unknown = 0, Phone = 1, Pad = 2, Mac = 3 }
+
+enum ImageEncoding : ubyte { Bgra8PremultipliedLzfse = 0 }
+
+enum DetailStatus : ubyte { Ok = 0, LayerNotFound = 1, CaptureFailed = 2 }
+
+// ---- Handshake ----
+
+table ClientInfo {
+  name: string;
+  version: string;
+}
+
+table AppInfo {
+  name: string;
+  bundle_id: string;
+  app_version: string;
+  device_name: string;
+  device_kind: DeviceKind;
+  is_simulator: bool;
+  os_name: string;
+  os_version: string;
+  screen_size: Size;
+  screen_scale: float;
+  server_version: string;
+}
+
+table Hello {
+  protocol: Version;
+  role: Role;
+  client: ClientInfo;   // set when role is Client
+  app: AppInfo;         // set when role is Server
+}
+
+// ---- Images ----
+
+table Image {
+  encoding: ImageEncoding;
+  pixel_width: uint;
+  pixel_height: uint;
+  bytes_per_row: uint;   // of the decompressed pixel data
+  scale: float;          // pixels per point
+  data: [ubyte];
+}
+
+table GetAppIcon {}
+
+table AppIcon {
+  image: Image;          // absent when the app has no icon
+}
+
+// ---- Hierarchy ----
+
+// 0.2: an instance variable that holds the layer, or the view the layer backs.
+table MemberReference {
+  owner_class_name: string;          // runtime name of the class that declares the variable
+  owner_display_class_name: string;  // human-readable name of that class
+  name: string;                      // the variable's name as declared
+}
+
+table LayerNode {
+  id: ulong;
+  parent_id: ulong;              // 0 for a window's root layer
+  class_name: string;            // runtime name of the layer's class
+  display_class_name: string;    // human-readable name of the layer's class
+  view_class_name: string;       // set when the layer backs a view
+  view_display_class_name: string;
+  bounds: Rect;
+  position: Point;
+  anchor_point: Point;
+  transform: Transform3D;
+  z_position: double;
+  hidden: bool;
+  opacity: float;
+  masks_to_bounds: bool;
+  // 0.2
+  view_controller_class_name: string;  // set when the layer backs a view controller's root view
+  view_controller_display_class_name: string;
+  member_references: [MemberReference]; // nearest holder first
+}
+
+table GetHierarchy {}
+
+table Hierarchy {
+  // Pre-order. A node's parent always appears before it.
+  // Siblings are ordered back to front: by zPosition, then by their order in sublayers.
+  nodes: [LayerNode];
+  key_window_id: ulong;          // 0 when there is no key window
+}
+
+// ---- Layer details ----
+
+// A table, not a struct: later versions add per-layer options here.
+table LayerDetailRequest {
+  layer_id: ulong;
+  want_solo: bool;
+  want_group: bool;
+  want_attributes: bool;
+}
+
+table GetLayerDetails {
+  requests: [LayerDetailRequest];
+  max_texture_dimension: uint;   // in pixels; 0 means no limit
+}
+
+table BoolValue { value: bool; }
+table IntValue { value: long; }
+table DoubleValue { value: double; }
+table StringValue { value: string; }
+table ColorValue { value: Color; }
+table PointValue { value: Point; }
+table SizeValue { value: Size; }
+table RectValue { value: Rect; }
+table InsetsValue { value: Insets; }
+table TransformValue { value: Transform3D; }
+table EnumValue {
+  value: long;
+  cases: [string];               // names of all cases, in declaration order
+  case_name: string;             // name of the current case
+}
+
+union AttributeValue {
+  BoolValue, IntValue, DoubleValue, StringValue, ColorValue, PointValue,
+  SizeValue, RectValue, InsetsValue, TransformValue, EnumValue
+}
+
+table Attribute {
+  id: string;                    // stable, e.g. "layer.cornerRadius"
+  title: string;
+  value: AttributeValue;         // absent means nil
+}
+
+table AttributeGroup {
+  id: string;                    // stable, e.g. "layer"
+  title: string;
+  attributes: [Attribute];
+}
+
+table LayerDetail {
+  layer_id: ulong;
+  status: DetailStatus;
+  solo: Image;                   // the layer without its sublayers
+  group: Image;                  // the layer with its whole subtree
+  attribute_groups: [AttributeGroup];
+}
+
+table LayerDetailsChunk {
+  sequence: uint;                // starts at 0, increases by 1
+  details: [LayerDetail];
+}
+
+// ---- Control ----
+
+table Error {
+  code: ErrorCode;
+  message: string;
+}
+
+table StreamEnd {
+  status: StreamStatus;
+  chunk_count: uint;
+  error: Error;                  // set when status is Failed
+}
+
+table Cancel {
+  target_request_id: uint;
+}
+
+table AppStateChanged {
+  state: AppState;
+}
+
+// ---- Frame ----
+
+union Body {
+  Hello, GetAppIcon, AppIcon, GetHierarchy, Hierarchy, GetLayerDetails,
+  LayerDetailsChunk, StreamEnd, Cancel, Error, AppStateChanged
+}
+
+table Frame {
+  request_id: uint;              // 0 for the handshake and for events
+  body: Body;
+}
+
+root_type Frame;

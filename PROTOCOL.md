@@ -2,7 +2,7 @@
 
 The Cutaway protocol is the contract between CutawayServer (an SDK embedded in an iOS app) and Cutaway (a macOS app). The Server listens on a local port; once the Client connects, it retrieves the app's layer hierarchy, images and attributes by request and response. This document is normative: both implementations follow this document and `schema/cutaway.fbs`.
 
-Protocol version: 0.1
+Protocol version: 0.2
 
 Numbered paragraphs are normative clauses. "Must" and "must not" state requirements; "may" states what is allowed but not required. Everything else is explanation.
 
@@ -42,7 +42,7 @@ An app in the simulator shares the Mac's loopback address, and the Client connec
 
 **P-FRAME-02** The FlatBuffer's file identifier must be `CTWY` and its root type must be `Frame`.
 
-**P-FRAME-03** On receiving any of the following frames, the receiver must close the connection; before closing, the Server may send `Error` (code `MalformedFrame`, `request_id` 0): N exceeds 268435456 (256 MiB); the file identifier is not `CTWY`; the buffer fails verification.
+**P-FRAME-03** On receiving any of the following frames, the receiver must close the connection; before closing, the Server must send `Error` (code `MalformedFrame`, `request_id` 0): N exceeds 268435456 (256 MiB); the file identifier is not `CTWY`; the buffer fails verification.
 
 **P-FRAME-04** The receiver must verify the whole buffer before reading any field. No field of a buffer that fails verification may be used.
 
@@ -58,9 +58,9 @@ Note: this is not FlatBuffers' own size-prefixed buffer. That format is aligned 
 
 **P-HELLO-03** When the major versions differ, the handshake fails: the Server must close the connection after sending its own `Hello`; the Client must close the connection on receiving a `Hello` whose major version differs from its own. When the handshake fails, neither side may send any other message.
 
-**P-HELLO-04** When the minor versions differ, the handshake succeeds and both sides work at the lower minor version: neither may send a message, field value, enum value or union member that does not exist in that minor version.
+**P-HELLO-04** When the minor versions differ, the handshake succeeds and both sides work at the lower minor version: neither may send a message, field value, enum value or union member that does not exist in that minor version. Table fields are exempt: a sender may write table fields appended in higher minor versions as usual, without choosing by the negotiated minor version, because a receiver ignores fields it does not know.
 
-**P-HELLO-05** Before the handshake completes, when the Server receives any message other than `Hello`, it must reply with `Error` (code `UnexpectedMessage`) and close the connection.
+**P-HELLO-05** Before the handshake completes, when the Server receives any message other than `Hello`, it must reply with `Error` (code `UnexpectedMessage`) and close the connection. The same applies when the `Hello` received has a `role` other than `Client`, or has no `protocol` field.
 
 **P-HELLO-06** If no `Hello` arrives within 5 seconds of the connection being established, the Server must close the connection.
 
@@ -68,13 +68,13 @@ Because the Server still replies with its own `Hello` when the major versions do
 
 ## Requests, responses and streams
 
-**P-REQ-01** `request_id` is assigned by the Client, starts at 1, and increases monotonically within a connection. Every frame the Client sends (including `Cancel`) takes its own `request_id`. 0 is reserved for the handshake, events, and errors that answer no particular request.
+**P-REQ-01** `request_id` is assigned by the Client, starts at 1, and increases monotonically within a connection. Every frame the Client sends (including `Cancel`) takes its own `request_id`. 0 is reserved for the handshake, events, and errors that answer no particular request. This clause binds only the Client: the Server does not check that `request_id` increases, and uses the value it received as is in the corresponding response.
 
 **P-REQ-02** An ordinary request gets exactly one response frame, with the same `request_id` as the request. `GetAppIcon` and `GetHierarchy` are ordinary requests.
 
 **P-REQ-03** The response to a streaming request is zero or more `LayerDetailsChunk` frames followed by exactly one `StreamEnd`, all with the same `request_id` as the request. `sequence` starts at 0 and increases by 1 per chunk. The `chunk_count` of `StreamEnd` must equal the number of chunks sent. `GetLayerDetails` is a streaming request.
 
-**P-REQ-04** `Cancel` has no response of its own. When `target_request_id` refers to a stream that has not ended, that stream must end with `StreamEnd` (status `Cancelled`); when the Server has not started handling the stream yet, the stream ends right away with `StreamEnd` (status `Cancelled`, `chunk_count` 0). When `target_request_id` refers to an ordinary request, a request that does not exist, or a request that has already ended, the Server must ignore the `Cancel`.
+**P-REQ-04** `Cancel` has no response of its own. When `target_request_id` refers to a stream that has not ended, that stream must end with `StreamEnd` (status `Cancelled`); when the Server has not started handling the stream yet, it captures nothing more for it, and ends it with `StreamEnd` (status `Cancelled`, `chunk_count` 0) when its turn comes under P-REQ-06, so the responses still come in the order of the requests. The Server uses `Cancelled` only to answer a `Cancel`; when the Server itself cannot continue a stream, it ends it with `Failed` (P-REQ-05). When `target_request_id` refers to an ordinary request, a request that does not exist, or a request that has already ended, the Server must ignore the `Cancel`.
 
 **P-REQ-05** When an ordinary request fails, the response is `Error`, with the same `request_id` as the request. When a streaming request fails, its response ends with `StreamEnd` (status `Failed`, with `error`).
 
@@ -98,7 +98,7 @@ Because the Server still replies with its own `Hello` when the major versions do
 
 ## Hierarchy
 
-**P-HIER-01** The response to `GetHierarchy` is `Hierarchy`. `nodes` is in pre-order: a parent must come before all its descendants, and siblings under the same parent are in back-to-front drawing order.
+**P-HIER-01** The response to `GetHierarchy` is `Hierarchy`. `nodes` is in pre-order: a parent must come before all its descendants, and siblings under the same parent are in back-to-front drawing order. Drawing order is ascending `zPosition`; siblings with the same `zPosition` keep their order in `sublayers`. The Server must order siblings this way; the Client draws in wire order and does not need to sort by `z_position` again.
 
 **P-HIER-02** The root nodes are the root layers of the windows; their `parent_id` is 0, and they are ordered from the back window to the front.
 
@@ -108,17 +108,25 @@ Because the Server still replies with its own `Hello` when the major versions do
 
 **P-HIER-05** Geometry fields take the layer's model values. Non-finite numbers (NaN, positive and negative infinity) must be sent as 0.
 
-**P-HIER-06** `bounds` and `position` are in points. `position` is in the parent layer's coordinate space; a root layer's `position` is in screen coordinates. To convert a point p in a layer's own coordinate space to its parent's: first subtract the anchor a, where a = `bounds.origin` + `anchor_point` × `bounds.size` (component-wise); then multiply by `transform`; finally add `position`.
+**P-HIER-06** `bounds` and `position` are in points. `position` is in the parent layer's coordinate space; a root layer's `position` is the window layer's model value (P-HIER-05), in the coordinate space of the window's scene. On iPhone the scene's coordinate space is the screen's; under Split View and Stage Manager on iPad it is not, and the value is then not the layer's position on screen. To convert a point p in a layer's own coordinate space to its parent's: first subtract the anchor a, where a = `bounds.origin` + `anchor_point` × `bounds.size` (component-wise); then multiply by `transform`; finally add `position`.
 
 `transform` has the same layout as Core Animation's `CATransform3D`, with points as row vectors multiplied on the left: the point (x, y) becomes (x·m11 + y·m21 + m41, x·m12 + y·m22 + m42). The typical case of a non-zero `bounds.origin` is a scroll view, where it is the current scroll offset.
 
 `class_name` is the raw runtime class name; `display_class_name` is a readable class name restored by the Server for display, so the Client need not demangle Swift symbols itself.
 
+**P-HIER-07** `view_controller_class_name` and `view_controller_display_class_name` are given only when the layer backs the root view (`view`) of a view controller, and are absent otherwise. The Server must not load a view controller's view for this if it is not loaded yet.
+
+**P-HIER-08** `member_references` lists the instance variables that hold this layer, or the view it backs. The holders are limited to the views backed by this layer's ancestor layers, and the view controllers whose root views are those views, UIKit's own classes included. Entries are ordered from the nearest holder to the farthest; several entries of the same holder are ordered first by the class declaring them, from subclass to superclass, and then by declaration order within the same class. The Server may give only some of them, and the Client must not rely on the list being complete. When there are none, it is empty or absent.
+
+**P-HIER-09** A `MemberReference`'s `owner_class_name` is the runtime class name of the class that declares the variable, and `owner_display_class_name` is its readable class name (by the same rule as `display_class_name`). `name` is the declared name: for a Swift stored property, its name without the internal prefixes the Swift compiler adds (for example the prefix of a `lazy` property's storage name); for an Objective-C instance variable, its name as is, with any leading underscore kept (for example `_titleLabel`).
+
+Only root views are marked with their view controller, rather than every layer carrying the controller it belongs to: the former is a precise fact, and the Client derives the latter by walking up the parents to the first node with `view_controller_class_name`. The class that declares a variable may be a superclass of the holder, so `owner_class_name` is not necessarily equal to any ancestor's `view_class_name` or `view_controller_class_name`.
+
 ## Layer details
 
 **P-DET-01** In a stream that completes normally, each layer in the request must appear in exactly one `LayerDetail`. A cancelled or failed stream may contain only some of them.
 
-**P-DET-02** When a requested layer does not exist, the corresponding `LayerDetail` has `status` `LayerNotFound`, its other fields are absent, and the stream continues.
+**P-DET-02** When a requested layer does not exist, the corresponding `LayerDetail` has `status` `LayerNotFound`, its other fields are absent or empty (for example `attribute_groups` of length 0), and the stream continues.
 
 **P-DET-03** When capturing fails (for example because the layer has zero size), the corresponding `LayerDetail` has `status` `CaptureFailed` and its image fields are absent; attributes may still be given.
 
@@ -142,7 +150,7 @@ What P-DET-07 means: the Client pins the image to the four corners of the layer'
 
 **P-IMG-02** `bytes_per_row` must be at least `pixel_width × 4`. The bytes of each row beyond `pixel_width × 4` are padding, with unspecified content.
 
-`scale` is the number of pixels per point. The image's size in points is `pixel_width / scale` by `pixel_height / scale`.
+**P-IMG-03** `scale` is nominal: the number of pixels per point. Pixel sizes are rounded, so `pixel_width / scale` and `pixel_height / scale` may differ from the layer's `bounds.size` by up to one pixel, plus the rounding from representing `scale` as a `float`. The Client must pin the image to `bounds` as P-DET-07 says, and must not derive the layer's size from `scale`.
 
 ## Attributes
 
@@ -151,6 +159,10 @@ What P-DET-07 means: the Client pins the image to the four corners of the layer'
 **P-ATTR-02** An absent `value` in an `Attribute` means the attribute's value is nil.
 
 **P-ATTR-03** The Client must not rely on a fixed list of attributes: it must be able to display a group or an attribute of any `id` from its `title` and `value`. The Server may use only the `AttributeValue` members that exist in the negotiated minor version; when a value cannot be expressed with those members, the Server sends a text description of it as a `StringValue`.
+
+**P-ATTR-04** The components of a `ColorValue` are in the sRGB color space (as in P-IMG-01) and range from 0 to 1, with alpha not premultiplied. The Server clamps colors outside the sRGB gamut into this range.
+
+**P-ATTR-05** Non-finite numbers (NaN, positive and negative infinity) in attribute values must be sent as 0, as P-HIER-05 requires for geometry fields.
 
 Attributes are self-describing: the Server decides which groups and attributes to give, and the Client displays what it receives. An `EnumValue` gives the current value, the names of all cases and the name of the current case.
 
@@ -187,8 +199,8 @@ The frame sequence below corresponds to the scenarios in `fixtures/`, and is for
 
 | Direction | `request_id` | Message | Notes |
 |---|---|---|---|
-| Client → Server | 0 | `Hello` | Protocol 0.1, `role` `Client` |
-| Server → Client | 0 | `Hello` | Protocol 0.1, `role` `Server`, with app information |
+| Client → Server | 0 | `Hello` | Protocol 0.2, `role` `Client` |
+| Server → Client | 0 | `Hello` | Protocol 0.2, `role` `Server`, with app information |
 | Server → Client | 0 | `AppStateChanged` | Current state `Active` |
 | Client → Server | 1 | `GetAppIcon` | |
 | Server → Client | 1 | `AppIcon` | |
