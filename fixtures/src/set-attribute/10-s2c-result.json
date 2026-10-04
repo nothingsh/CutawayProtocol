@@ -1,0 +1,68 @@
+{
+  "request_id": 5,
+  "body_type": "SetAttributeResult",
+  "body": {
+    "layer_id": 4,
+    "attribute_groups": [
+      {
+        "id": "layer",
+        "title": "Layer",
+        "attributes": [
+          {
+            "id": "layer.opacity",
+            "title": "Opacity",
+            "value_type": "DoubleValue",
+            "value": {
+              "value": 0.5
+            },
+            "editable": true,
+            "accepts_nil": false,
+            "value_kind": "DoubleValue"
+          },
+          {
+            "id": "layer.cornerRadius",
+            "title": "Corner Radius",
+            "value_type": "DoubleValue",
+            "value": {
+              "value": 12.0
+            },
+            "editable": true,
+            "accepts_nil": false,
+            "value_kind": "DoubleValue"
+          },
+          {
+            "id": "layer.backgroundColor",
+            "title": "Background Color",
+            "editable": true,
+            "accepts_nil": true,
+            "value_kind": "ColorValue"
+          }
+        ]
+      },
+      {
+        "id": "view",
+        "title": "View",
+        "attributes": [
+          {
+            "id": "view.alpha",
+            "title": "Alpha",
+            "value_type": "DoubleValue",
+            "value": {
+              "value": 0.5
+            },
+            "editable": true,
+            "accepts_nil": false,
+            "value_kind": "DoubleValue"
+          },
+          {
+            "id": "view.tintColor",
+            "title": "Tint Color",
+            "editable": true,
+            "accepts_nil": true,
+            "value_kind": "ColorValue"
+          }
+        ]
+      }
+    ]
+  }
+}

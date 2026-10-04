@@ -479,7 +479,10 @@
                       "height": 0
                     }
                   }
-                }
+                },
+                "editable": false,
+                "accepts_nil": false,
+                "value_kind": "RectValue"
               },
               {
                 "id": "layer.hidden",
@@ -487,7 +490,10 @@
                 "value_type": "BoolValue",
                 "value": {
                   "value": false
-                }
+                },
+                "editable": true,
+                "accepts_nil": false,
+                "value_kind": "BoolValue"
               }
             ]
           }

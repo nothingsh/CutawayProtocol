@@ -1,0 +1,21 @@
+{
+  "request_id": 2,
+  "body_type": "SetAttribute",
+  "body": {
+    "layer_id": 3,
+    "attribute_id": "layer.frame",
+    "value_type": "RectValue",
+    "value": {
+      "value": {
+        "origin": {
+          "x": 0,
+          "y": 0
+        },
+        "size": {
+          "width": 100,
+          "height": 24
+        }
+      }
+    }
+  }
+}

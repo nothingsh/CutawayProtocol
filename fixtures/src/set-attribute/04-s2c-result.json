@@ -1,0 +1,212 @@
+{
+  "request_id": 2,
+  "body_type": "SetAttributeResult",
+  "body": {
+    "layer_id": 3,
+    "attribute_groups": [
+      {
+        "id": "layer",
+        "title": "Layer",
+        "attributes": [
+          {
+            "id": "layer.frame",
+            "title": "Frame",
+            "value_type": "RectValue",
+            "value": {
+              "value": {
+                "origin": {
+                  "x": 96.5,
+                  "y": 108
+                },
+                "size": {
+                  "width": 200,
+                  "height": 24
+                }
+              }
+            },
+            "editable": false,
+            "accepts_nil": false,
+            "value_kind": "RectValue"
+          },
+          {
+            "id": "layer.position",
+            "title": "Position",
+            "value_type": "PointValue",
+            "value": {
+              "value": {
+                "x": 196.5,
+                "y": 120
+              }
+            },
+            "editable": true,
+            "accepts_nil": false,
+            "value_kind": "PointValue"
+          },
+          {
+            "id": "layer.shadowOffset",
+            "title": "Shadow Offset",
+            "value_type": "SizeValue",
+            "value": {
+              "value": {
+                "width": 0,
+                "height": -3
+              }
+            },
+            "editable": true,
+            "accepts_nil": false,
+            "value_kind": "SizeValue"
+          },
+          {
+            "id": "layer.opacity",
+            "title": "Opacity",
+            "value_type": "DoubleValue",
+            "value": {
+              "value": 1.0
+            },
+            "editable": true,
+            "accepts_nil": false,
+            "value_kind": "DoubleValue"
+          },
+          {
+            "id": "layer.hidden",
+            "title": "Hidden",
+            "value_type": "BoolValue",
+            "value": {
+              "value": false
+            },
+            "editable": true,
+            "accepts_nil": false,
+            "value_kind": "BoolValue"
+          },
+          {
+            "id": "layer.backgroundColor",
+            "title": "Background Color",
+            "editable": true,
+            "accepts_nil": true,
+            "value_kind": "ColorValue"
+          },
+          {
+            "id": "layer.borderColor",
+            "title": "Border Color",
+            "value_type": "ColorValue",
+            "value": {
+              "value": {
+                "red": 0.0,
+                "green": 0.0,
+                "blue": 0.0,
+                "alpha": 1.0
+              }
+            },
+            "editable": true,
+            "accepts_nil": true,
+            "value_kind": "ColorValue"
+          },
+          {
+            "id": "layer.transform",
+            "title": "Transform",
+            "value_type": "TransformValue",
+            "value": {
+              "value": {
+                "m11": 1.0,
+                "m12": 0.0,
+                "m13": 0.0,
+                "m14": 0.0,
+                "m21": 0.0,
+                "m22": 1.0,
+                "m23": 0.0,
+                "m24": 0.0,
+                "m31": 0.0,
+                "m32": 0.0,
+                "m33": 1.0,
+                "m34": 0.0,
+                "m41": 0.0,
+                "m42": 0.0,
+                "m43": 0.0,
+                "m44": 1.0
+              }
+            },
+            "editable": true,
+            "accepts_nil": false,
+            "value_kind": "TransformValue"
+          }
+        ]
+      },
+      {
+        "id": "label",
+        "title": "Label",
+        "attributes": [
+          {
+            "id": "label.text",
+            "title": "Text",
+            "value_type": "StringValue",
+            "value": {
+              "value": "Welcome back"
+            },
+            "editable": true,
+            "accepts_nil": true,
+            "value_kind": "StringValue"
+          },
+          {
+            "id": "label.numberOfLines",
+            "title": "Number Of Lines",
+            "value_type": "IntValue",
+            "value": {
+              "value": 1
+            },
+            "editable": true,
+            "accepts_nil": false,
+            "value_kind": "IntValue"
+          },
+          {
+            "id": "label.textAlignment",
+            "title": "Text Alignment",
+            "value_type": "EnumValue",
+            "value": {
+              "value": 2,
+              "cases": [
+                "left",
+                "center",
+                "right",
+                "justified",
+                "natural"
+              ],
+              "case_name": "right",
+              "case_values": [
+                0,
+                1,
+                2,
+                3,
+                4
+              ]
+            },
+            "editable": true,
+            "accepts_nil": false,
+            "value_kind": "EnumValue"
+          }
+        ]
+      },
+      {
+        "id": "view",
+        "title": "View",
+        "attributes": [
+          {
+            "id": "view.layoutMargins",
+            "title": "Layout Margins",
+            "value_type": "InsetsValue",
+            "value": {
+              "value": {
+                "top": 8.0,
+                "left": 8.0,
+                "bottom": 8.0,
+                "right": 8.0
+              }
+            },
+            "editable": true,
+            "accepts_nil": false,
+            "value_kind": "InsetsValue"
+          }
+        ]
+      }
+    ]
+  }
+}

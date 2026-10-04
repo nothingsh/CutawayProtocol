@@ -38,24 +38,27 @@ After changing `src/` or the schema:
 scripts/build-fixtures.sh fixtures/bin
 ```
 
-`scripts/verify.sh` regenerates them and compares the result with `bin/`, failing on any difference; it also uses `scripts/check-fixtures.py` to check the fixtures against the clauses the schema cannot express (sequence numbers, chunk counts, how responses match requests, image sizes). Do not edit the files under `bin/` by hand.
+`scripts/verify.sh` regenerates them and compares the result with `bin/`, failing on any difference; it also uses `scripts/check-fixtures.py` to check the fixtures against the clauses the schema cannot express (sequence numbers, chunk counts, how responses match requests, image sizes, the attributes' editing fields, the content of subtrees, the reply each modification request should get). Do not edit the files under `bin/` by hand.
 
 ## Scenarios
 
 | Scenario | Content | Clauses verified |
 |---|---|---|
 | `handshake` | A successful handshake, after which the Server sends the current state | P-HELLO-01, 02; P-EVT-01, 02 |
-| `handshake-version-mismatch` | The Client's major version is 1; the Server still replies with its own `Hello` (0.2), then closes the connection | P-HELLO-02, 03 |
+| `handshake-version-mismatch` | The Client's major version is 1; the Server still replies with its own `Hello` (0.3), then closes the connection | P-HELLO-02, 03 |
 | `busy` | The only frame received when connecting to a Server that already has a Client | P-TRANS-03 |
 | `app-icon` | Getting the app icon | P-REQ-02; P-ICON-01; P-IMG-01 |
 | `hierarchy` | A hierarchy of one window and nine nodes, with view controllers and member variables | P-HIER-01 to 04, 06 to 09 |
-| `layer-details` | Details of three layers in two chunks, ending normally | P-REQ-03; P-DET-01, 02, 04, 07; P-ATTR-01, 02 |
+| `layer-details` | Details of three layers in two chunks, ending normally; attributes carry editing fields | P-REQ-03; P-DET-01, 02, 04, 07; P-ATTR-01, 02, 06, 07 |
 | `layer-details-edge` | An omitted solo, an image with row padding, a failed capture with attributes, a request that wants nothing | P-DET-03, 04; P-IMG-02 |
 | `layer-details-cancelled` | A details stream cancelled after its first chunk | P-REQ-01, 04, 06 |
 | `app-not-active` | Requesting the hierarchy after the app goes to the background | P-APP-01; P-REQ-05 |
 | `layer-details-failed` | The app leaves the active state while a details stream is in progress | P-APP-01; P-EVT-02; P-REQ-05 |
+| `set-attribute` | Changing text, an enum, a color (from nil to a color and back to nil) and `view.alpha` (which changes `layer.opacity` with it), each reply holding the whole layer's attributes | P-REQ-02; P-ATTR-06, 07; P-SET-01, 02 |
+| `set-attribute-rejected` | A layer that does not exist, a read-only attribute, the wrong member, nil for an attribute that does not accept nil | P-SET-03; P-REQ-05 |
+| `subtree` | Getting the subtree of node 4; getting a layer that does not exist | P-HIER-10, 11 |
 
-Clauses no fixture covers: in P-HIER-01, the ordering of siblings with different `zPosition` (it is already done on the wire; a fixture can only give the result, not the `sublayers` before sorting); P-HIER-05 and P-ATTR-05 (non-finite numbers sent as 0); P-HELLO-04 (a handshake with different minor versions); P-IMG-03 (`scale` is nominal); P-DET-05 and P-DET-08 (scaling down oversized images); P-DET-06 (the chunk size limit); P-FRAME-03 (malformed frames); P-HELLO-05, 06 and P-REQ-08. These rely on each side's own tests.
+Clauses no fixture covers: in P-HIER-01, the ordering of siblings with different `zPosition` (it is already done on the wire; a fixture can only give the result, not the `sublayers` before sorting); P-HIER-05 and P-ATTR-05 (non-finite numbers sent as 0); P-HELLO-04 (a handshake with different minor versions); P-IMG-03 (`scale` is nominal); P-DET-05 and P-DET-08 (scaling down oversized images); P-DET-06 (the chunk size limit); P-FRAME-03 (malformed frames); P-HELLO-05, 06 and P-REQ-08; the "change no state" part of P-SET-03; P-SET-04 (the Server adjusting the value written); P-SET-05 (layout, no animations); P-SET-06. These rely on each side's own tests.
 
 ## Nodes of the `hierarchy` scenario
 
@@ -127,3 +130,37 @@ Layer 4 has both a `solo` and a `group` image, and no attributes were requested.
 | 8 | group | group, with row padding | P-IMG-02 |
 | 9 | group and attributes | `CaptureFailed`, no images, with attributes | A layer of zero size (P-DET-03) |
 | 7 | nothing | only `layer_id` and `status` | |
+
+## Editing fields (0.3)
+
+Every attribute in `layer-details` and `layer-details-edge` carries `editable`, `accepts_nil` and `value_kind`. Which attributes are editable is decided by the Server's list of attributes; the values in the fixtures are only an example:
+
+- `layer.frame` is read-only (it is computed from `bounds`, `position`, `anchorPoint` and `transform`); all others are editable.
+- `layer.backgroundColor`, `layer.borderColor`, `label.text` and `view.tintColor` may be set to nil.
+- `layer.backgroundColor`, whose value is nil, still carries `value_kind` (`ColorValue`).
+- The `case_values` of `label.textAlignment` are 0 to 4, matching `cases` one to one.
+
+## The `set-attribute` scenario
+
+| Request | Layer | Attribute | Value written | Change in the reply |
+|---|---|---|---|---|
+| 1 | 3 | `label.text` | `"Welcome back"` | The text changed; the rest is the same as layer 3's attributes in `layer-details` |
+| 2 | 3 | `label.textAlignment` | An `EnumValue` with only `value` 2 | The case becomes `right` |
+| 3 | 4 | `layer.backgroundColor` | From nil to (0.2, 0.4, 0.8, 1) | |
+| 4 | 4 | `view.alpha` | 0.5 | `layer.opacity` also becomes 0.5 |
+| 5 | 4 | `layer.backgroundColor` | No `value`, that is, set to nil | The background color is back to nil; `value_kind` is still `ColorValue` |
+
+Layer 4's attributes appear only in this scenario: the `layer` group has `layer.opacity`, `layer.cornerRadius` and `layer.backgroundColor`, and the `view` group has `view.alpha` and `view.tintColor`, whose value is nil.
+
+## The `set-attribute-rejected` scenario
+
+| Request | Layer | Attribute | Value written | Error code |
+|---|---|---|---|---|
+| 1 | 99 | `label.text` | `"Hi"` | `LayerNotFound` |
+| 2 | 3 | `layer.frame` | A rectangle | `AttributeNotEditable` |
+| 3 | 3 | `layer.opacity` | `StringValue` | `InvalidAttributeValue` |
+| 4 | 3 | `label.numberOfLines` | No `value` (nil) | `InvalidAttributeValue` |
+
+## The `subtree` scenario
+
+Getting the subtree of node 4 replies with nodes 4 and 5, exactly as in the `hierarchy` scenario; node 4's `parent_id` is still 2, and `key_window_id` is 1. Getting layer 99, which does not exist, replies with `LayerNotFound`.

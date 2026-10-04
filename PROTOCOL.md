@@ -1,8 +1,8 @@
 # Cutaway Protocol
 
-The Cutaway protocol is the contract between CutawayServer (an SDK embedded in an iOS app) and Cutaway (a macOS app). The Server listens on a local port; once the Client connects, it retrieves the app's layer hierarchy, images and attributes by request and response. This document is normative: both implementations follow this document and `schema/cutaway.fbs`.
+The Cutaway protocol is the contract between CutawayServer (an SDK embedded in an iOS app) and Cutaway (a macOS app). The Server listens on a local port; once the Client connects, it retrieves the app's layer hierarchy, images and attributes by request and response, and can modify attributes. This document is normative: both implementations follow this document and `schema/cutaway.fbs`.
 
-Protocol version: 0.2
+Protocol version: 0.3
 
 Numbered paragraphs are normative clauses. "Must" and "must not" state requirements; "may" states what is allowed but not required. Everything else is explanation.
 
@@ -23,6 +23,9 @@ The payload of every frame is a `Frame`, whose `body` is one of the following me
 | `Cancel` | Client → Server | Cancels a stream in progress |
 | `Error` | Server → Client | Error |
 | `AppStateChanged` | Server → Client | Event: the app's active state changed |
+| `SetAttribute` | Client → Server | Modifies one attribute of one layer (0.3) |
+| `SetAttributeResult` | Server → Client | Response to `SetAttribute` (0.3) |
+| `GetSubtree` | Client → Server | Gets a layer and all its descendants; the response is a `Hierarchy` (0.3) |
 
 ## Transport
 
@@ -70,7 +73,7 @@ Because the Server still replies with its own `Hello` when the major versions do
 
 **P-REQ-01** `request_id` is assigned by the Client, starts at 1, and increases monotonically within a connection. Every frame the Client sends (including `Cancel`) takes its own `request_id`. 0 is reserved for the handshake, events, and errors that answer no particular request. This clause binds only the Client: the Server does not check that `request_id` increases, and uses the value it received as is in the corresponding response.
 
-**P-REQ-02** An ordinary request gets exactly one response frame, with the same `request_id` as the request. `GetAppIcon` and `GetHierarchy` are ordinary requests.
+**P-REQ-02** An ordinary request gets exactly one response frame, with the same `request_id` as the request. `GetAppIcon`, `GetHierarchy`, `GetSubtree` and `SetAttribute` are ordinary requests.
 
 **P-REQ-03** The response to a streaming request is zero or more `LayerDetailsChunk` frames followed by exactly one `StreamEnd`, all with the same `request_id` as the request. `sequence` starts at 0 and increases by 1 per chunk. The `chunk_count` of `StreamEnd` must equal the number of chunks sent. `GetLayerDetails` is a streaming request.
 
@@ -90,7 +93,7 @@ Because the Server still replies with its own `Hello` when the major versions do
 
 **P-EVT-02** The Server must send the current state once right after a successful handshake, and then every time the state changes.
 
-**P-APP-01** When the app's state is not `Active`, the Server must reply to `GetHierarchy` with `Error` (code `AppNotActive`), and end `GetLayerDetails` with `StreamEnd` (status `Failed`, code `AppNotActive`). `GetAppIcon` is not affected by the app's state.
+**P-APP-01** When the app's state is not `Active`, the Server must reply to `GetHierarchy`, `GetSubtree` and `SetAttribute` with `Error` (code `AppNotActive`), and end `GetLayerDetails` with `StreamEnd` (status `Failed`, code `AppNotActive`). `GetAppIcon` is not affected by the app's state.
 
 ## App icon
 
@@ -121,6 +124,12 @@ Because the Server still replies with its own `Hello` when the major versions do
 **P-HIER-09** A `MemberReference`'s `owner_class_name` is the runtime class name of the class that declares the variable, and `owner_display_class_name` is its readable class name (by the same rule as `display_class_name`). `name` is the declared name: for a Swift stored property, its name without the internal prefixes the Swift compiler adds (for example the prefix of a `lazy` property's storage name); for an Objective-C instance variable, its name as is, with any leading underscore kept (for example `_titleLabel`).
 
 Only root views are marked with their view controller, rather than every layer carrying the controller it belongs to: the former is a precise fact, and the Client derives the latter by walking up the parents to the first node with `view_controller_class_name`. The class that declares a variable may be a superclass of the holder, so `owner_class_name` is not necessarily equal to any ancestor's `view_class_name` or `view_controller_class_name`.
+
+**P-HIER-10** The response to `GetSubtree` is `Hierarchy`. The first node in `nodes` is the layer given by `root_id`, followed by all its descendants, with the order and the field rules of P-HIER-01 and 03 to 09; the first node's `parent_id` is its actual parent layer, or 0 when it is the root layer of a window. `key_window_id` is the same as in the response to `GetHierarchy`.
+
+**P-HIER-11** When the layer given by `root_id` does not exist (it has been released, or is no longer in any window), the Server must reply with `Error` (code `LayerNotFound`).
+
+`GetSubtree` refreshes part of the hierarchy: the Client replaces the subtree rooted at this layer in its model with the response. IDs do not change within a connection (P-HIER-03), so a layer that has not changed is still the same node; a new layer has a new ID, and a layer that no longer appears has been removed. The position of the subtree's root among its siblings is not in the response; when its `z_position` changes, the Client has to refresh its parent's subtree to get the new order.
 
 ## Layer details
 
@@ -164,7 +173,37 @@ What P-DET-07 means: the Client pins the image to the four corners of the layer'
 
 **P-ATTR-05** Non-finite numbers (NaN, positive and negative infinity) in attribute values must be sent as 0, as P-HIER-05 requires for geometry fields.
 
-Attributes are self-describing: the Server decides which groups and attributes to give, and the Client displays what it receives. An `EnumValue` gives the current value, the names of all cases and the name of the current case.
+**P-ATTR-06** `editable` true means the Client may modify this attribute with `SetAttribute`; `accepts_nil` true means it may be set to nil, and is meaningful only when `editable` is true. `value_kind` is the `AttributeValue` member that this attribute's value uses, and must be given even when `value` is absent; when `value` is present, `value_kind` must be the same as its member.
+
+**P-ATTR-07** The `case_values` of an `EnumValue` has the same length as `cases` and matches it one to one: it holds the raw value of each case.
+
+Attributes are self-describing: the Server decides which groups and attributes to give and which of them may be modified, and the Client displays what it receives. An `EnumValue` gives the current value, the names of all cases, the name of the current case and the raw value of each case.
+
+A 0.2 Server does not send the three fields of P-ATTR-06; the Client reads false and `None`, that is, everything is read-only, with no need to check the version separately. `AttributeValueKind` has the same numbering as the type field of `AttributeValue`; FlatBuffers does not allow a union's type to be used as the type of another field, so it is defined separately, and the two are appended together from now on.
+
+## Modifying attributes
+
+**P-SET-01** When `SetAttribute` succeeds, the response is `SetAttributeResult`: `layer_id` is the same as the request's, and `attribute_groups` is all of this layer's attribute groups, read again after the modification took effect, by the same rules as the `attribute_groups` of `LayerDetail`.
+
+**P-SET-02** `value` must be the member that the attribute's `value_kind` names; an absent `value` means setting the attribute to nil, which is allowed only when `accepts_nil` is true. When the value is an `EnumValue`, the Server reads only its `value`, which must be one of `case_values`; `cases` and `case_name` may be absent.
+
+**P-SET-03** When a request is invalid, the Server must reply with `Error`, and must not change any state of the app. The error code is the first of the following that applies: `LayerNotFound` when the layer does not exist; `AttributeNotEditable` when this layer's attribute groups have no attribute with this ID, or its `editable` is false; `InvalidAttributeValue` when the request violates P-SET-02, contains a non-finite number, or is rejected by the Server's other checks.
+
+**P-SET-04** The Server may adjust the value it writes (for example clamping opacity to 0 to 1), and the app itself may also change it afterwards. The Client must display the value in `SetAttributeResult`, and must not assume that the value written took effect as is.
+
+**P-SET-05** The Server modifies on the main thread, must not produce implicit animations, and has the window containing the layer finish layout before replying. A later `GetSubtree`, `GetHierarchy` or `GetLayerDetails` reads the state after the modification and the layout it caused.
+
+**P-SET-06** A modification affects only the app's current runtime state. The Server neither records nor reverts modifications; they remain after the connection closes.
+
+`SetAttributeResult` carries the attributes of the whole layer, because changing one attribute often changes others with it (`view.alpha` and `layer.opacity`; `layer.frame` and `layer.bounds`, `layer.position`). It carries no `LayerNode`: the layout a modification causes may move many layers, and geometry is always fetched with `GetSubtree`.
+
+After a modification, the Client works out which layers' images need updating; the protocol does not specify it. The recommended approach:
+
+1. Update the attribute panel from `SetAttributeResult`.
+2. Send `GetSubtree` for the root layer of the window that contains the target layer. The modification may cause layout of the parent and further up, and may change the drawing order of siblings; the hierarchy carries no images, so fetching one window is cheap.
+3. Compare with the old nodes, and send `GetLayerDetails` again for: the target layer and its whole subtree (for example `tintColor` changes how the whole subtree renders, while their geometry stays the same); its ancestors (only `group` is needed); layers with any changed node field; new layers. Remove layers that no longer appear from the model.
+
+Continuous modifications (for example dragging a slider): keep only one `SetAttribute` in flight for the same attribute at a time; of the new values produced before the reply arrives, keep only the latest, and send it once the reply arrives. An image stream in progress is queued ahead of the modification (P-REQ-06); `Cancel` it first if needed. Undo is done by the Client: it has the old value before modifying, so undoing is just another `SetAttribute`.
 
 ## Error codes
 
@@ -176,6 +215,9 @@ Attributes are self-describing: the Server decides which groups and attributes t
 | `Busy` | The Server is already serving another Client |
 | `AppNotActive` | The app is not active and cannot be captured |
 | `Internal` | An internal Server error |
+| `LayerNotFound` | The layer the request names does not exist (0.3, P-HIER-11, P-SET-03) |
+| `AttributeNotEditable` | The attribute does not exist or cannot be modified (0.3, P-SET-03) |
+| `InvalidAttributeValue` | The value to write is invalid (0.3, P-SET-03) |
 
 The `message` of `Error` is an English explanation for people to read; the Client must not make decisions based on its content.
 
@@ -199,8 +241,8 @@ The frame sequence below corresponds to the scenarios in `fixtures/`, and is for
 
 | Direction | `request_id` | Message | Notes |
 |---|---|---|---|
-| Client → Server | 0 | `Hello` | Protocol 0.2, `role` `Client` |
-| Server → Client | 0 | `Hello` | Protocol 0.2, `role` `Server`, with app information |
+| Client → Server | 0 | `Hello` | Protocol 0.3, `role` `Client` |
+| Server → Client | 0 | `Hello` | Protocol 0.3, `role` `Server`, with app information |
 | Server → Client | 0 | `AppStateChanged` | Current state `Active` |
 | Client → Server | 1 | `GetAppIcon` | |
 | Server → Client | 1 | `AppIcon` | |
@@ -210,3 +252,7 @@ The frame sequence below corresponds to the scenarios in `fixtures/`, and is for
 | Server → Client | 3 | `LayerDetailsChunk` | `sequence` 0 |
 | Server → Client | 3 | `LayerDetailsChunk` | `sequence` 1 |
 | Server → Client | 3 | `StreamEnd` | Status `Completed`, `chunk_count` 2 |
+| Client → Server | 4 | `SetAttribute` | Changes `label.text` of layer 3 |
+| Server → Client | 4 | `SetAttributeResult` | All attributes of layer 3 after the change |
+| Client → Server | 5 | `GetSubtree` | Root layer 1 of the window, to fetch the geometry after the change |
+| Server → Client | 5 | `Hierarchy` | Nine nodes |

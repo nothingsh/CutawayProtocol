@@ -200,7 +200,10 @@
                       "height": 24
                     }
                   }
-                }
+                },
+                "editable": false,
+                "accepts_nil": false,
+                "value_kind": "RectValue"
               },
               {
                 "id": "layer.position",
@@ -211,7 +214,10 @@
                     "x": 196.5,
                     "y": 120
                   }
-                }
+                },
+                "editable": true,
+                "accepts_nil": false,
+                "value_kind": "PointValue"
               },
               {
                 "id": "layer.shadowOffset",
@@ -222,7 +228,10 @@
                     "width": 0,
                     "height": -3
                   }
-                }
+                },
+                "editable": true,
+                "accepts_nil": false,
+                "value_kind": "SizeValue"
               },
               {
                 "id": "layer.opacity",
@@ -230,7 +239,10 @@
                 "value_type": "DoubleValue",
                 "value": {
                   "value": 1.0
-                }
+                },
+                "editable": true,
+                "accepts_nil": false,
+                "value_kind": "DoubleValue"
               },
               {
                 "id": "layer.hidden",
@@ -238,11 +250,17 @@
                 "value_type": "BoolValue",
                 "value": {
                   "value": false
-                }
+                },
+                "editable": true,
+                "accepts_nil": false,
+                "value_kind": "BoolValue"
               },
               {
                 "id": "layer.backgroundColor",
-                "title": "Background Color"
+                "title": "Background Color",
+                "editable": true,
+                "accepts_nil": true,
+                "value_kind": "ColorValue"
               },
               {
                 "id": "layer.borderColor",
@@ -255,7 +273,10 @@
                     "blue": 0.0,
                     "alpha": 1.0
                   }
-                }
+                },
+                "editable": true,
+                "accepts_nil": true,
+                "value_kind": "ColorValue"
               },
               {
                 "id": "layer.transform",
@@ -280,7 +301,10 @@
                     "m43": 0.0,
                     "m44": 1.0
                   }
-                }
+                },
+                "editable": true,
+                "accepts_nil": false,
+                "value_kind": "TransformValue"
               }
             ]
           },
@@ -294,7 +318,10 @@
                 "value_type": "StringValue",
                 "value": {
                   "value": "Hello"
-                }
+                },
+                "editable": true,
+                "accepts_nil": true,
+                "value_kind": "StringValue"
               },
               {
                 "id": "label.numberOfLines",
@@ -302,7 +329,10 @@
                 "value_type": "IntValue",
                 "value": {
                   "value": 1
-                }
+                },
+                "editable": true,
+                "accepts_nil": false,
+                "value_kind": "IntValue"
               },
               {
                 "id": "label.textAlignment",
@@ -317,8 +347,18 @@
                     "justified",
                     "natural"
                   ],
-                  "case_name": "center"
-                }
+                  "case_name": "center",
+                  "case_values": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4
+                  ]
+                },
+                "editable": true,
+                "accepts_nil": false,
+                "value_kind": "EnumValue"
               }
             ]
           },
@@ -337,7 +377,10 @@
                     "bottom": 8.0,
                     "right": 8.0
                   }
-                }
+                },
+                "editable": true,
+                "accepts_nil": false,
+                "value_kind": "InsetsValue"
               }
             ]
           }

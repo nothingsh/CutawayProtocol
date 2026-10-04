@@ -1,0 +1,12 @@
+{
+  "request_id": 4,
+  "body_type": "SetAttribute",
+  "body": {
+    "layer_id": 4,
+    "attribute_id": "view.alpha",
+    "value_type": "DoubleValue",
+    "value": {
+      "value": 0.5
+    }
+  }
+}

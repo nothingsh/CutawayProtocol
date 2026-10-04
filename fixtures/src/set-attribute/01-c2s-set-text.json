@@ -1,0 +1,12 @@
+{
+  "request_id": 1,
+  "body_type": "SetAttribute",
+  "body": {
+    "layer_id": 3,
+    "attribute_id": "label.text",
+    "value_type": "StringValue",
+    "value": {
+      "value": "Welcome back"
+    }
+  }
+}

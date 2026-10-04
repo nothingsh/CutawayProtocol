@@ -1,0 +1,8 @@
+{
+  "request_id": 5,
+  "body_type": "SetAttribute",
+  "body": {
+    "layer_id": 4,
+    "attribute_id": "layer.backgroundColor"
+  }
+}

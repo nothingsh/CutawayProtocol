@@ -40,7 +40,11 @@ enum ErrorCode : ushort {
   UnexpectedMessage = 2,
   Busy = 3,
   AppNotActive = 4,
-  Internal = 5
+  Internal = 5,
+  // 0.3
+  LayerNotFound = 6,
+  AttributeNotEditable = 7,
+  InvalidAttributeValue = 8
 }
 
 enum StreamStatus : ubyte { Completed = 0, Cancelled = 1, Failed = 2 }
@@ -166,6 +170,8 @@ table EnumValue {
   value: long;
   cases: [string];               // names of all cases, in declaration order
   case_name: string;             // name of the current case
+  // 0.3
+  case_values: [long];           // raw value of each case, parallel to cases
 }
 
 union AttributeValue {
@@ -173,10 +179,22 @@ union AttributeValue {
   SizeValue, RectValue, InsetsValue, TransformValue, EnumValue
 }
 
+// 0.3: names the members of AttributeValue, with the same numbers as the union's type field.
+// Append to it whenever a member is appended to AttributeValue.
+enum AttributeValueKind : ubyte {
+  None = 0, BoolValue = 1, IntValue = 2, DoubleValue = 3, StringValue = 4, ColorValue = 5,
+  PointValue = 6, SizeValue = 7, RectValue = 8, InsetsValue = 9, TransformValue = 10,
+  EnumValue = 11
+}
+
 table Attribute {
   id: string;                    // stable, e.g. "layer.cornerRadius"
   title: string;
   value: AttributeValue;         // absent means nil
+  // 0.3
+  editable: bool;                // SetAttribute may change it
+  accepts_nil: bool;             // SetAttribute may set it to nil
+  value_kind: AttributeValueKind; // the member value uses, also when value is absent
 }
 
 table AttributeGroup {
@@ -196,6 +214,23 @@ table LayerDetail {
 table LayerDetailsChunk {
   sequence: uint;                // starts at 0, increases by 1
   details: [LayerDetail];
+}
+
+// ---- Editing (0.3) ----
+
+table SetAttribute {
+  layer_id: ulong;
+  attribute_id: string;
+  value: AttributeValue;         // absent sets nil
+}
+
+table SetAttributeResult {
+  layer_id: ulong;
+  attribute_groups: [AttributeGroup];  // all groups of the layer, read after the change
+}
+
+table GetSubtree {
+  root_id: ulong;                // answered with Hierarchy
 }
 
 // ---- Control ----
@@ -223,7 +258,9 @@ table AppStateChanged {
 
 union Body {
   Hello, GetAppIcon, AppIcon, GetHierarchy, Hierarchy, GetLayerDetails,
-  LayerDetailsChunk, StreamEnd, Cancel, Error, AppStateChanged
+  LayerDetailsChunk, StreamEnd, Cancel, Error, AppStateChanged,
+  // 0.3
+  SetAttribute, SetAttributeResult, GetSubtree
 }
 
 table Frame {
