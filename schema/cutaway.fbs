@@ -5,8 +5,12 @@
 //   - Only append fields to tables. Never change a field's type, reuse or remove it.
 //   - Only append values to enums and members to unions.
 //   - Structs never change.
-//   - Frame, Hello and Version keep their existing fields in every major version,
-//     so that a handshake between any two versions can always be read.
+//   - An appended field's default means the behaviour from before it was added,
+//     and ignoring it must not change how other fields read (P-EVO-06, 07).
+//   - What the handshake needs never changes, in any major version (P-EVO-05):
+//     the file identifier, the root type, Body's members Hello to Error, and the
+//     existing members of Frame, Hello, Version, Role, ClientInfo, AppInfo,
+//     DeviceKind, Size, Error and ErrorCode.
 
 namespace Cutaway.Wire;
 

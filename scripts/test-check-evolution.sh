@@ -61,6 +61,14 @@ expect "version goes backwards"             fail 's' 0.0
 
 expect "breaking change with a major bump"  pass 's.replace("  hidden: bool;\n", "")' 1.0
 expect "major bump that breaks the handshake" fail 's.replace("  role: Role;\n", "")' 1.0
+expect "major bump that moves Hello in Body"  fail 's.replace("Hello, GetAppIcon, AppIcon", "GetAppIcon, Hello, AppIcon")' 1.0
+expect "major bump that drops a message before Error" fail 's.replace("StreamEnd, Cancel, Error,", "StreamEnd, Error,")' 1.0
+expect "major bump that changes AppInfo"     fail 's.replace("  bundle_id: string;", "  bundle_id: [ubyte];")' 1.0
+expect "major bump that renumbers an error code" fail 's.replace("  Busy = 3,", "  Busy = 9,")' 1.0
+expect "major bump that changes the file identifier" fail 's.replace("file_identifier \"CTWY\";", "file_identifier \"XXXX\";")' 1.0
+expect "major bump that changes the root type" fail 's.replace("root_type Frame;", "root_type Hello;")' 1.0
+expect "major bump that changes Body after Error" pass 's.replace("Cancel, Error, AppStateChanged,", "Cancel, Error,")' 1.0
+expect "major bump that appends to AppInfo"  pass 're.sub(r"(table AppInfo \{[^}]*)\}", r"\1  locale: string;\n}", s)' 1.0
 
 echo "$passes passed, $failures failed"
 [[ "$failures" -eq 0 ]] || exit 1

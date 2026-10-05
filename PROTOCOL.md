@@ -29,7 +29,7 @@ The payload of every frame is a `Frame`, whose `body` is one of the following me
 
 ## Transport
 
-**P-TRANS-01** The Server must listen for TCP on the loopback address only, and must not listen on any other network interface.
+**P-TRANS-01** The Server must listen for TCP on the loopback address only, and must not listen on any other network interface. Transports beyond loopback (for example Wi-Fi) are left to a later version; such a transport must authenticate and encrypt the connection, and authentication happens outside the frames, leaving this document's frame format and handshake unchanged. (The second sentence since 0.5.2.)
 
 **P-TRANS-02** The port range is 48160 to 48167. The Server must try the ports in order from 48160 and bind the first one available. When every port in the range is taken, the Server does not listen, and retries the next time the app becomes active.
 
@@ -51,17 +51,21 @@ An app in the simulator shares the Mac's loopback address, and the Client connec
 
 **P-FRAME-05** The byte order of multi-byte values inside the buffer is set by FlatBuffers: little-endian.
 
+**P-FRAME-06** When verifying, the receiver must not reject a buffer whose length is within the limit of P-FRAME-03 and whose content conforms to this protocol because of its number of tables, its nesting depth or its apparent size. (Since 0.5.2.)
+
 Note: this is not FlatBuffers' own size-prefixed buffer. That format is aligned differently, so the bytes of the two differ and they are not interchangeable. A sender should build an ordinary buffer first and then write its length in front of it; a receiver reads the length, takes N bytes, and verifies those N bytes as an ordinary buffer. The `.stream` files under `fixtures/bin/` give the exact bytes on the wire.
+
+P-FRAME-06 is aimed at verifiers' default limits. The FlatBuffers Swift runtime allows at most 1,000,000 tables by default, while P-DET-06 limits a chunk only by the pixels of its images, so a few tens of thousands of details without images in one chunk exceed it. With this runtime, set `maxTableCount` in `VerifierOptions` to at least 67108864 (2^26): every table takes at least 4 bytes, so a 256 MiB buffer holds at most that many. The default depth limit of 64 is enough, since this protocol nests tables at most six deep; the default apparent size limit of 2^31 is 8 times the frame limit.
 
 ## Handshake and versions
 
 **P-HELLO-01** The first frame the Client sends after the connection is established must be `Hello`, with `role` `Client`, `request_id` 0, and the `client` field.
 
-**P-HELLO-02** The Server must reply with a `Hello` with `role` `Server`, `request_id` 0, `protocol` set to the Server's own protocol version, and the `app` field. The Server sends this frame whether or not the major versions match.
+**P-HELLO-02** The Server must reply with a `Hello` with `role` `Server`, `request_id` 0, `protocol` set to the protocol version the Server uses on this connection, and the `app` field. A Server that supports one major version gives its own version; a Server that supports several major versions may choose the one that matches the Client's major version, and gives the highest version it supports within that major version. The Server sends this frame whether or not the major versions match. ("Uses on this connection" since 0.5.2; before, it read "the Server's own", which is the same for a Server that supports one major version.)
 
 **P-HELLO-03** When the major versions differ, the handshake fails: the Server must close the connection after sending its own `Hello`; the Client must close the connection on receiving a `Hello` whose major version differs from its own. When the handshake fails, neither side may send any other message.
 
-**P-HELLO-04** When the minor versions differ, the handshake succeeds and both sides work at the lower minor version: neither may send a message, field value, enum value or union member that does not exist in that minor version. Table fields are exempt: a sender may write table fields appended in higher minor versions as usual, without choosing by the negotiated minor version, because a receiver ignores fields it does not know.
+**P-HELLO-04** When the minor versions differ, the handshake succeeds and both sides work at the lower minor version: neither may send a message, field value, enum value or union member that does not exist in that minor version, nor content that can only be understood correctly under the clauses of a higher minor version (for example, a later version letting objects that did not appear before appear as hierarchy nodes). Table fields are exempt: a sender may write table fields appended in higher minor versions as usual, without choosing by the negotiated minor version, because a receiver ignores fields it does not know, and P-EVO-07 ensures that ignoring them does not lead it to misread other fields. ("Content that can only be understood correctly under the clauses of a higher minor version" stated explicitly since 0.5.2.)
 
 **P-HELLO-05** Before the handshake completes, when the Server receives any message other than `Hello`, it must reply with `Error` (code `UnexpectedMessage`) and close the connection. The same applies when the `Hello` received has a `role` other than `Client`, or has no `protocol` field.
 
@@ -130,6 +134,8 @@ Only root views are marked with their view controller, rather than every layer c
 **P-HIER-11** When the layer given by `root_id` does not exist (P-HIER-12), the Server must reply with `Error` (code `LayerNotFound`).
 
 **P-HIER-12** In this document, a layer that "does not exist" is one that has been released, or is no longer in any window. P-HIER-11, P-DET-02 and P-SET-03 all use this meaning. (Since 0.4; before, only P-HIER-11 stated this meaning.)
+
+**P-HIER-13** A layer used as a `mask` is not a hierarchy node, and neither are its sublayers; its effect shows in the image of the masked layer. (Stated explicitly since 0.5.2; Servers already did so.)
 
 `GetSubtree` refreshes part of the hierarchy: the Client replaces the subtree rooted at this layer in its model with the response. IDs do not change within a connection (P-HIER-03), so a layer that has not changed is still the same node; a new layer has a new ID, and a layer that no longer appears has been removed. The position of the subtree's root among its siblings is not in the response; when its `z_position` changes, the Client has to refresh its parent's subtree to get the new order.
 
@@ -263,11 +269,26 @@ The `message` of `Error` is an English explanation for people to read; the Clien
 
 **P-EVO-03** A change that consists only of appends increases the minor version by 1. Any other change increases the major version by 1 and resets the minor version to 0. Any change to the schema must come with a change of version.
 
-**P-EVO-04** Changes that change the major version are allowed before 1.0.
+**P-EVO-04** A change that changes the major version must state, when it is released, its impact on Cutaway's archives and on the Servers already released. This holds both before and after 1.0. ("After 1.0" and "state its impact" since 0.5.2; before, it said only that such changes were allowed before 1.0.)
 
-**P-EVO-05** The existing fields of `Frame`, `Hello` and `Version` must not change in any major version, so that the handshake between any two versions can always be read.
+**P-EVO-05** The following must not change in any major version, so that the handshake between any two versions, and the `Error` around it (P-TRANS-03, P-FRAME-03, P-HELLO-05), can always be read: the frame format (P-FRAME-01, 02), the file identifier and the root type; the names and order of the first 10 members of `Body` (`Hello` to `Error`); the existing fields and members of `Frame`, `Hello`, `Version`, `Role`, `ClientInfo`, `AppInfo`, `DeviceKind`, `Size`, `Error` and `ErrorCode`. They may still be appended to. (Listed in full since 0.5.2; before, only `Frame`, `Hello` and `Version` were listed.)
 
-A receiver ignores table fields it does not know, so appending fields is safe. Unknown enum values and union members are not: the former are read as the enum's first member, and the latter fail verification. So new enum values and union members may be used only when the peer's minor version includes them too (P-HELLO-04).
+**P-EVO-06** When an appended table field is absent (a sender of an earlier version does not write it), it must mean the behavior from before the field was appended. (Since 0.5.2.)
+
+**P-EVO-07** A receiver that ignores an appended table field must not misread other fields because of it. A field that changes the meaning of existing fields (for example, one whose presence means colors are no longer sRGB) may be sent only when the negotiated minor version includes it, as with enum values and union members (P-HELLO-04). (Since 0.5.2.)
+
+**P-EVO-08** A change to the normative clauses gets its version number by whether the peer is affected:
+1. A change that requires no change of the peer is released as a patch version. This includes stating explicitly what both sides already do; tightening one side's requirements so that the peer still conforms to this document as before; and relaxing a constraint on one side that the peer does not rely on.
+2. A change to behavior the peer may rely on can only be written as "when the negotiated minor version is at least some value", and increases the minor version by 1.
+3. Any other change increases the major version by 1.
+
+(Since 0.5.2.)
+
+A receiver ignores table fields it does not know, so appending fields is safe, given P-EVO-06 and 07. Unknown enum values and union members are not: the former are read as the enum's first member, and the latter fail verification. So new enum values and union members may be used only when the peer's minor version includes them too (P-HELLO-04).
+
+Archives have no negotiation: when an earlier version of Cutaway opens an archive written under a later minor version, new enum values are read as the first member (for example `Ok` of `DetailStatus`, `Active` of `AppState`) instead of causing an error. So an archive records its protocol version, and Cutaway should not read an archive of a higher minor version as if it were of its own version.
+
+The first 10 members of `Body` are in P-EVO-05 because the type field of `Frame.body` is the member's index: if any major version moved `Hello` or `Error`, other major versions could not recognize them. `Size` is there because `AppInfo`'s `screen_size` uses it.
 
 ## An example session
 

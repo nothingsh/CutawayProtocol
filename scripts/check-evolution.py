@@ -4,8 +4,9 @@
 Usage: check-evolution.py <released.fbs> <released-version> <current.fbs> <current-version>
 
 Versions look like MAJOR.MINOR. Rules:
-  - A higher major version declares a breaking change; nothing else is checked,
-    except that Frame, Hello and Version keep their existing fields (P-EVO-05).
+  - A higher major version declares a breaking change. Only what the handshake
+    needs is checked (P-EVO-05): the file identifier and the root type, the
+    existing members of the handshake types, and the first members of Body.
   - Otherwise tables may only gain fields at the end; enums and unions may only
     gain members at the end; structs, the file identifier and the root type do
     not change; nothing is removed or renamed.
@@ -17,7 +18,11 @@ flatc --conform checks field offsets only; this covers what it lets through.
 import re
 import sys
 
-HANDSHAKE = ("Frame", "Hello", "Version")
+# P-EVO-05: what a handshake, and an error sent around it, needs in every major version.
+HANDSHAKE = ("Frame", "Hello", "Version", "Role", "ClientInfo", "AppInfo", "DeviceKind", "Size",
+             "Error", "ErrorCode", "Body")
+# Of these unions only a prefix is fixed: Body's members Hello to Error.
+HANDSHAKE_PREFIX = {"Body": 10}
 
 
 def parse(path):
@@ -48,17 +53,18 @@ def version(text):
     return int(match.group(1)), int(match.group(2))
 
 
-def compare(old, new, names=None):
+def compare(old, new, names=None, prefixes=None):
     problems = []
-    if names is None:
-        if old["file_identifier"] != new["file_identifier"]:
-            problems.append("file_identifier changed: %r -> %r" % (old["file_identifier"], new["file_identifier"]))
-        if old["root_type"] != new["root_type"]:
-            problems.append("root_type changed: %r -> %r" % (old["root_type"], new["root_type"]))
+    if old["file_identifier"] != new["file_identifier"]:
+        problems.append("file_identifier changed: %r -> %r" % (old["file_identifier"], new["file_identifier"]))
+    if old["root_type"] != new["root_type"]:
+        problems.append("root_type changed: %r -> %r" % (old["root_type"], new["root_type"]))
     for name in (names or old["order"]):
         if name not in old["decls"]:
             continue
         kind, base, members = old["decls"][name]
+        if prefixes and name in prefixes:
+            members = members[:prefixes[name]]
         if name not in new["decls"]:
             problems.append("%s %s was removed or renamed" % (kind, name))
             continue
@@ -90,9 +96,9 @@ def main():
         sys.exit("check-evolution: version went backwards: %s -> %s" % (sys.argv[2], sys.argv[4]))
 
     if new_version[0] > old_version[0]:
-        problems = compare(old, new, names=HANDSHAKE)
+        problems = compare(old, new, names=HANDSHAKE, prefixes=HANDSHAKE_PREFIX)
         if problems:
-            print("check-evolution: the handshake types must keep their fields in every major version (P-EVO-05):")
+            print("check-evolution: what the handshake needs must not change in any major version (P-EVO-05):")
             for problem in problems:
                 print("  - " + problem)
             sys.exit(1)
