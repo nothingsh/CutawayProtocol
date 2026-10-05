@@ -2,7 +2,7 @@
 
 The Cutaway protocol is the contract between CutawayServer (an SDK embedded in an iOS app) and Cutaway (a macOS app). The Server listens on a local port; once the Client connects, it retrieves the app's layer hierarchy, images, attributes and Auto Layout constraints by request and response, and can modify attributes. This document is normative: both implementations follow this document and `schema/cutaway.fbs`.
 
-Protocol version: 0.4
+Protocol version: 0.5
 
 Numbered paragraphs are normative clauses. "Must" and "must not" state requirements; "may" states what is allowed but not required. Everything else is explanation.
 
@@ -217,15 +217,21 @@ After changing an attribute that causes layout (for example compression resistan
 
 **P-LAYOUT-03** A constraint's `id` and a layout guide's `guide_id` must not be 0. Within a connection the same object keeps the same ID, and after the object is released its ID must not be assigned to another object (as in P-HIER-03). When the same constraint appears in the details of several layers, its `id` is the same everywhere.
 
-**P-LAYOUT-04** When the `kind` of a `LayoutItem` is `View`, `layer_id` is the layer that backs this view; when it is `LayoutGuide`, `layer_id` is the layer that backs the view owning the guide, and `guide_id`, `class_name`, `display_class_name` and `guide_frame` are given, plus `identifier` when it is not empty; when it is `Other` (an object that is neither a view nor a layout guide), only `class_name` and `display_class_name` are given. `display_class_name` follows the same rule as for hierarchy nodes. `guide_frame` is the guide's `layoutFrame`, in the owner's coordinate space.
+**P-LAYOUT-04** When the `kind` of a `LayoutItem` is `View`, `layer_id` is the layer that backs this view; when it is `LayoutGuide`, `layer_id` is the layer that backs the view owning the guide, and `guide_id`, `class_name`, `display_class_name` and `guide_frame` are given, plus `identifier` when it is not empty; when it is `Other` (an object that is neither a view nor a layout guide), only `class_name` and `display_class_name` are given. `display_class_name` follows the same rule as for hierarchy nodes. `guide_frame` is the guide's `layoutFrame`, in the owner's coordinate space; non-finite numbers in it must be sent as 0 (as in P-HIER-05; stated explicitly since 0.5).
 
 **P-LAYOUT-05** When a constraint has no second item, `second_item` is absent and `second_attribute` is `NotAnAttribute`. `multiplier`, `constant` and `priority` are the current values of the constraint object; non-finite numbers are sent as 0 (as in P-ATTR-05).
 
 **P-LAYOUT-06** `status` says whether the constraint's relation holds in the layout at the time the Server takes the details: `Satisfied` when it holds, `Unsatisfied` when it does not. Both sides are computed with the geometry Auto Layout itself uses (alignment rectangles, layout margins, the `layoutFrame` of layout guides, unaffected by `transform`), and a difference of no more than half a pixel counts as holding. When the Server cannot compute it (for example for text baselines), it is `Unknown`.
 
+**P-LAYOUT-07** `MinX`, `MinY`, `MaxX` and `MaxY` of `LayoutAttribute` (0.5) are attributes UIKit uses in constraints translated from an autoresizing mask. They are not in Apple's public `NSLayoutConstraint.Attribute`, and their values are the same as UIKit's raw values. They are the view's left, top, right and bottom edges in its superview's coordinate space. The Server must send them as they are, and must not convert them into other attributes: converting would change the second item and `constant`, contradicting the "current values" of P-LAYOUT-05. For constraints that use these attributes, `status` may be `Unknown`.
+
+**P-LAYOUT-08** When the Server meets a raw attribute value that the protocol does not name (for example one added by a later OS), or would send a `LayoutAttribute` value that the negotiated minor version does not have (P-HELLO-04, for example `MinX` to a 0.4 Client), it must send `NotAnAttribute` instead, and give the constraint and its two items as usual. Only in these two cases may the first attribute be `NotAnAttribute`, and the second attribute as well when there is a second item; the Client displays it as an unknown attribute, and must not consider the constraint invalid because of it. Otherwise the first attribute is not `NotAnAttribute`, and the second attribute is `NotAnAttribute` if and only if there is no second item (P-LAYOUT-05). (Since 0.5.)
+
 A view's constraints are all the active constraints that refer to it: the same constraint appears in the details of the views at both of its ends, and `id` lets the Client recognize it as the same one. Inactive constraints are in no view's `constraints` and the Server cannot find them, so the constraints given are all active. When an optional constraint (priority below 1000) loses out, or UIKit breaks a required constraint because of a conflict, `status` is `Unsatisfied` either way.
 
-The view end of a constraint gives only the layer ID; class names and member variable names are on the hierarchy nodes. Layout guides (the safe area, `layoutMarginsGuide`, the keyboard guide, the spacers inside `UIStackView`, and so on) are not views and have no layers, so they are not hierarchy nodes; the Client converts the owner into window coordinates and adds `guide_frame` to draw a guide in the preview. The values of `LayoutAttribute` are the same as UIKit's `NSLayoutConstraint.Attribute`; `LayoutRelation` differs.
+The view end of a constraint gives only the layer ID; class names and member variable names are on the hierarchy nodes. Layout guides (the safe area, `layoutMarginsGuide`, the keyboard guide, the spacers inside `UIStackView`, and so on) are not views and have no layers, so they are not hierarchy nodes; the Client converts the owner into window coordinates and adds `guide_frame` to draw a guide in the preview. The values of `LayoutAttribute` are the same as UIKit's `NSLayoutConstraint.Attribute`, plus four that UIKit does not make public (P-LAYOUT-07); `LayoutRelation` differs.
+
+Constraints translated from an autoresizing mask usually take these shapes (for a superview 393 wide and a view with the frame 300, 700, 0, 0): a fixed margin is written as `view.minY == 700`, with no second item; a flexible margin is written from the superview's side, for example `superview.width == view.maxX + 93` for a flexible left margin; width and height are written as `view.width == 0`. Clients of 0.4 and earlier do not recognize `MinX` and the others, and the Server sends `NotAnAttribute` to them under P-LAYOUT-08.
 
 One way to find the constraints: an active constraint is installed on the nearest common ancestor of its two ends, so walk from the view up through its superviews to the window, check the `constraints` of each, and keep those that refer to the view or to its layout guides.
 
@@ -269,8 +275,8 @@ The frame sequence below corresponds to the scenarios in `fixtures/`, and is for
 
 | Direction | `request_id` | Message | Notes |
 |---|---|---|---|
-| Client → Server | 0 | `Hello` | Protocol 0.4, `role` `Client` |
-| Server → Client | 0 | `Hello` | Protocol 0.4, `role` `Server`, with app information |
+| Client → Server | 0 | `Hello` | Protocol 0.5, `role` `Client` |
+| Server → Client | 0 | `Hello` | Protocol 0.5, `role` `Server`, with app information |
 | Server → Client | 0 | `AppStateChanged` | Current state `Active` |
 | Client → Server | 1 | `GetAppIcon` | |
 | Server → Client | 1 | `AppIcon` | |

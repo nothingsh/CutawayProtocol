@@ -247,7 +247,10 @@ enum LayoutAttribute : ubyte {
   LastBaseline = 11, FirstBaseline = 12,
   LeftMargin = 13, RightMargin = 14, TopMargin = 15, BottomMargin = 16,
   LeadingMargin = 17, TrailingMargin = 18,
-  CenterXWithinMargins = 19, CenterYWithinMargins = 20
+  CenterXWithinMargins = 19, CenterYWithinMargins = 20,
+  // 0.5: used by UIKit's NSAutoresizingMaskLayoutConstraint; not in the public
+  // NSLayoutConstraint.Attribute, same raw values.
+  MinX = 32, MinY = 33, MaxX = 36, MaxY = 37
 }
 
 enum LayoutRelation : ubyte { Equal = 0, LessThanOrEqual = 1, GreaterThanOrEqual = 2 }

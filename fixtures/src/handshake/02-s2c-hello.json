@@ -4,7 +4,7 @@
   "body": {
     "protocol": {
       "major": 0,
-      "minor": 4
+      "minor": 5
     },
     "role": "Server",
     "app": {

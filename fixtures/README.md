@@ -45,7 +45,7 @@ scripts/build-fixtures.sh fixtures/bin
 | Scenario | Content | Clauses verified |
 |---|---|---|
 | `handshake` | A successful handshake, after which the Server sends the current state | P-HELLO-01, 02; P-EVT-01, 02 |
-| `handshake-version-mismatch` | The Client's major version is 1; the Server still replies with its own `Hello` (0.4), then closes the connection | P-HELLO-02, 03 |
+| `handshake-version-mismatch` | The Client's major version is 1; the Server still replies with its own `Hello` (0.5), then closes the connection | P-HELLO-02, 03 |
 | `busy` | The only frame received when connecting to a Server that already has a Client | P-TRANS-03 |
 | `app-icon` | Getting the app icon | P-REQ-02; P-ICON-01; P-IMG-01 |
 | `hierarchy` | A hierarchy of one window and nine nodes, with view controllers and member variables | P-HIER-01 to 04, 06 to 09 |
@@ -57,9 +57,9 @@ scripts/build-fixtures.sh fixtures/bin
 | `set-attribute` | Changing text, an enum, a color (from nil to a color and back to nil) and `view.alpha` (which changes `layer.opacity` with it), each reply holding the whole layer's attributes | P-REQ-02; P-ATTR-06, 07; P-SET-01, 02 |
 | `set-attribute-rejected` | A layer that does not exist, a read-only attribute, the wrong member, nil for an attribute that does not accept nil | P-SET-03; P-REQ-05 |
 | `subtree` | Getting the subtree of node 4; getting a layer that does not exist | P-HIER-10, 11 |
-| `layout-constraints` | Five layers, constraints only: constraints to views and to the safe area, without a second item, an optional constraint that does not hold, the same constraint in two places, constraints UIKit generates, a layer that does not back a view, a layer that does not exist | P-DET-02; P-LAYOUT-01 to 06 |
+| `layout-constraints` | Five layers, constraints only: constraints to views and to the safe area, without a second item, an optional constraint that does not hold, the same constraint in two places, constraints UIKit generates (using `MinY` and `MaxX`, with the superview as first item), a layer that does not back a view, a layer that does not exist | P-DET-02; P-LAYOUT-01 to 07 |
 
-Clauses no fixture covers: in P-HIER-01, the ordering of siblings with different `zPosition` (it is already done on the wire; a fixture can only give the result, not the `sublayers` before sorting); P-HIER-05 and P-ATTR-05 (non-finite numbers sent as 0); P-HELLO-04 (a handshake with different minor versions); P-IMG-03 (`scale` is nominal); P-DET-05 and P-DET-08 (scaling down oversized images); P-DET-06 (the chunk size limit); P-FRAME-03 (malformed frames); P-HELLO-05, 06 and P-REQ-08; the "change no state" part of P-SET-03; P-SET-04 (the Server adjusting the value written); P-SET-05 (layout, no animations); P-SET-06; the "no filtering" of P-LAYOUT-02; the judgement of P-LAYOUT-06 (a fixture can only give the result); the handling of layers moved out of their window in P-HIER-12. These rely on each side's own tests.
+Clauses no fixture covers: in P-HIER-01, the ordering of siblings with different `zPosition` (it is already done on the wire; a fixture can only give the result, not the `sublayers` before sorting); P-HIER-05 and P-ATTR-05 (non-finite numbers sent as 0); P-HELLO-04 (a handshake with different minor versions); P-IMG-03 (`scale` is nominal); P-DET-05 and P-DET-08 (scaling down oversized images); P-DET-06 (the chunk size limit); P-FRAME-03 (malformed frames); P-HELLO-05, 06 and P-REQ-08; the "change no state" part of P-SET-03; P-SET-04 (the Server adjusting the value written); P-SET-05 (layout, no animations); P-SET-06; the "no filtering" of P-LAYOUT-02; the judgement of P-LAYOUT-06 (a fixture can only give the result); non-finite numbers in `guide_frame` in P-LAYOUT-04; P-LAYOUT-08 (sending `NotAnAttribute` instead; the fixtures represent a Client at the same minor version as the Server); the handling of layers moved out of their window in P-HIER-12. These rely on each side's own tests.
 
 ## Nodes of the `hierarchy` scenario
 
@@ -166,7 +166,7 @@ Layer 4's attributes appear only in this scenario: the `layer` group has `layer.
 
 Getting the subtree of node 4 replies with nodes 4 and 5, exactly as in the `hierarchy` scenario; node 4's `parent_id` is still 2, and `key_window_id` is 1. Getting layer 99, which does not exist, replies with `LayerNotFound`.
 
-## The `layout-constraints` scenario (0.4)
+## The `layout-constraints` scenario (0.4; constraints 8 to 11 changed to the shapes UIKit actually uses in 0.5)
 
 One `GetLayerDetails` requests layers 3, 4, 9, 8 and 99, each for constraints only (`want_constraints`), in one chunk. The layers are the nodes of the `hierarchy` scenario. Constraints are written as "first item.attribute relation second item.attribute × multiplier + constant", where the numbers are layer IDs:
 
@@ -179,6 +179,6 @@ One `GetLayerDetails` requests layers 3, 4, 9, 8 and 99, each for constraints on
 | 5 | `4.width == 300` | 1000 | `Satisfied` | 4 | No second item |
 | 6 | `4.height == 180` | 1000 | `Satisfied` | 4 | No second item |
 | 7 | `4.centerX == 2.centerX` | 1000 | `Satisfied` | 4 | |
-| 8 to 11 | `9.left == 2.left + 300`, `9.width == 0`, `9.top == 2.top + 700`, `9.height == 0` | 1000 | `Satisfied` | 9 | `class_name` is `NSAutoresizingMaskLayoutConstraint` (P-LAYOUT-02) |
+| 8 to 11 | `2.width == 9.maxX + 93`, `9.width == 0`, `9.minY == 700`, `9.height == 0` | 1000 | `Satisfied` | 9 | `class_name` is `NSAutoresizingMaskLayoutConstraint` (P-LAYOUT-02); they use attributes UIKit does not make public (P-LAYOUT-07, 0.5): the left margin is flexible and written from the superview's side, 393 = 300 + 93; the top margin is fixed, with no second item |
 
 All multipliers are 1. The `class_name` of constraints 1 to 7 is `NSLayoutConstraint`. Layer 8 does not back a view, so its details have no `constraints`; layer 99 does not exist, and its `status` is `LayerNotFound`.
