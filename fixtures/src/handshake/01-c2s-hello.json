@@ -4,12 +4,12 @@
   "body": {
     "protocol": {
       "major": 0,
-      "minor": 3
+      "minor": 4
     },
     "role": "Client",
     "client": {
       "name": "Cutaway",
-      "version": "0.3.0"
+      "version": "0.4.0"
     }
   }
 }

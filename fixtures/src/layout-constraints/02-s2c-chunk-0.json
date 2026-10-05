@@ -1,0 +1,198 @@
+{
+  "request_id": 1,
+  "body_type": "LayerDetailsChunk",
+  "body": {
+    "sequence": 0,
+    "details": [
+      {
+        "layer_id": 3,
+        "status": "Ok",
+        "constraints": [
+          {
+            "id": 1,
+            "class_name": "NSLayoutConstraint",
+            "first_item": { "layer_id": 3 },
+            "first_attribute": "CenterX",
+            "relation": "Equal",
+            "second_item": { "layer_id": 2 },
+            "second_attribute": "CenterX",
+            "multiplier": 1.0,
+            "constant": 0.0,
+            "priority": 1000.0,
+            "status": "Satisfied"
+          },
+          {
+            "id": 2,
+            "class_name": "NSLayoutConstraint",
+            "first_item": { "layer_id": 3 },
+            "first_attribute": "Top",
+            "relation": "Equal",
+            "second_item": {
+              "kind": "LayoutGuide",
+              "layer_id": 2,
+              "guide_id": 1,
+              "class_name": "UILayoutGuide",
+              "display_class_name": "UILayoutGuide",
+              "identifier": "UIViewSafeAreaLayoutGuide",
+              "guide_frame": {
+                "origin": { "x": 0, "y": 59 },
+                "size": { "width": 393, "height": 759 }
+              }
+            },
+            "second_attribute": "Top",
+            "multiplier": 1.0,
+            "constant": 49.0,
+            "priority": 1000.0,
+            "status": "Satisfied"
+          },
+          {
+            "id": 3,
+            "class_name": "NSLayoutConstraint",
+            "identifier": "titleLabel.preferredWidth",
+            "first_item": { "layer_id": 3 },
+            "first_attribute": "Width",
+            "relation": "Equal",
+            "second_attribute": "NotAnAttribute",
+            "multiplier": 1.0,
+            "constant": 240.0,
+            "priority": 250.0,
+            "status": "Unsatisfied"
+          },
+          {
+            "id": 4,
+            "class_name": "NSLayoutConstraint",
+            "first_item": { "layer_id": 4 },
+            "first_attribute": "Top",
+            "relation": "Equal",
+            "second_item": { "layer_id": 3 },
+            "second_attribute": "Bottom",
+            "multiplier": 1.0,
+            "constant": 78.0,
+            "priority": 1000.0,
+            "status": "Satisfied"
+          }
+        ]
+      },
+      {
+        "layer_id": 4,
+        "status": "Ok",
+        "constraints": [
+          {
+            "id": 4,
+            "class_name": "NSLayoutConstraint",
+            "first_item": { "layer_id": 4 },
+            "first_attribute": "Top",
+            "relation": "Equal",
+            "second_item": { "layer_id": 3 },
+            "second_attribute": "Bottom",
+            "multiplier": 1.0,
+            "constant": 78.0,
+            "priority": 1000.0,
+            "status": "Satisfied"
+          },
+          {
+            "id": 5,
+            "class_name": "NSLayoutConstraint",
+            "first_item": { "layer_id": 4 },
+            "first_attribute": "Width",
+            "relation": "Equal",
+            "second_attribute": "NotAnAttribute",
+            "multiplier": 1.0,
+            "constant": 300.0,
+            "priority": 1000.0,
+            "status": "Satisfied"
+          },
+          {
+            "id": 6,
+            "class_name": "NSLayoutConstraint",
+            "first_item": { "layer_id": 4 },
+            "first_attribute": "Height",
+            "relation": "Equal",
+            "second_attribute": "NotAnAttribute",
+            "multiplier": 1.0,
+            "constant": 180.0,
+            "priority": 1000.0,
+            "status": "Satisfied"
+          },
+          {
+            "id": 7,
+            "class_name": "NSLayoutConstraint",
+            "first_item": { "layer_id": 4 },
+            "first_attribute": "CenterX",
+            "relation": "Equal",
+            "second_item": { "layer_id": 2 },
+            "second_attribute": "CenterX",
+            "multiplier": 1.0,
+            "constant": 0.0,
+            "priority": 1000.0,
+            "status": "Satisfied"
+          }
+        ]
+      },
+      {
+        "layer_id": 9,
+        "status": "Ok",
+        "constraints": [
+          {
+            "id": 8,
+            "class_name": "NSAutoresizingMaskLayoutConstraint",
+            "first_item": { "layer_id": 9 },
+            "first_attribute": "Left",
+            "relation": "Equal",
+            "second_item": { "layer_id": 2 },
+            "second_attribute": "Left",
+            "multiplier": 1.0,
+            "constant": 300.0,
+            "priority": 1000.0,
+            "status": "Satisfied"
+          },
+          {
+            "id": 9,
+            "class_name": "NSAutoresizingMaskLayoutConstraint",
+            "first_item": { "layer_id": 9 },
+            "first_attribute": "Width",
+            "relation": "Equal",
+            "second_attribute": "NotAnAttribute",
+            "multiplier": 1.0,
+            "constant": 0.0,
+            "priority": 1000.0,
+            "status": "Satisfied"
+          },
+          {
+            "id": 10,
+            "class_name": "NSAutoresizingMaskLayoutConstraint",
+            "first_item": { "layer_id": 9 },
+            "first_attribute": "Top",
+            "relation": "Equal",
+            "second_item": { "layer_id": 2 },
+            "second_attribute": "Top",
+            "multiplier": 1.0,
+            "constant": 700.0,
+            "priority": 1000.0,
+            "status": "Satisfied"
+          },
+          {
+            "id": 11,
+            "class_name": "NSAutoresizingMaskLayoutConstraint",
+            "first_item": { "layer_id": 9 },
+            "first_attribute": "Height",
+            "relation": "Equal",
+            "second_attribute": "NotAnAttribute",
+            "multiplier": 1.0,
+            "constant": 0.0,
+            "priority": 1000.0,
+            "status": "Satisfied"
+          }
+        ]
+      },
+      {
+        "layer_id": 8,
+        "status": "Ok"
+      },
+      {
+        "layer_id": 99,
+        "status": "LayerNotFound"
+      }
+    ]
+  }
+}

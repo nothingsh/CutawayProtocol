@@ -11,7 +11,10 @@ P-IMG-01, 02). Every attribute's editing fields (P-ATTR-06, 07). Each plain
 request gets one response with its request id (P-REQ-02); a subtree is the
 hierarchy's subtree under the asked root (P-HIER-10, 11); and the answer to
 each SetAttribute is the one P-SET-01 to 03 call for, judged by the
-attributes the fixtures give for that layer.
+attributes the fixtures give for that layer. Constraints come only when asked
+for and only for a layer that backs a view; each involves its layer, its items
+are well formed, and one id means the same constraint everywhere (P-LAYOUT-01
+to 05).
 """
 
 import glob
@@ -102,6 +105,54 @@ def check_attributes(where, groups):
                     problem(spot, "value and case_name do not name the same case (P-ATTR-07)")
 
 
+def check_item(spot, item, nodes, guides):
+    kind = item.get("kind", "View")
+    names = "class_name" in item and "display_class_name" in item
+    guide_only = [key for key in ("guide_id", "identifier", "guide_frame") if key in item]
+    if kind in ("View", "LayoutGuide"):
+        node = nodes.get(item.get("layer_id", 0))
+        if node is None or "view_class_name" not in node:
+            problem(spot, "layer_id %d is not a layer that backs a view (P-LAYOUT-04)" % item.get("layer_id", 0))
+    elif "layer_id" in item:
+        problem(spot, "an Other item has no layer_id (P-LAYOUT-04)")
+    if kind == "LayoutGuide":
+        if item.get("guide_id", 0) == 0 or not names or "guide_frame" not in item:
+            problem(spot, "a layout guide needs guide_id, both class names and guide_frame (P-LAYOUT-03, 04)")
+        canonical = json.dumps(item, sort_keys=True)
+        if guides.setdefault(item.get("guide_id", 0), canonical) != canonical:
+            problem(spot, "guide %d differs from another place it appears (P-LAYOUT-03)" % item.get("guide_id", 0))
+    else:
+        if guide_only:
+            problem(spot, "%s belong to layout guides only (P-LAYOUT-04)" % ", ".join(guide_only))
+        if kind == "View" and ("class_name" in item or "display_class_name" in item):
+            problem(spot, "a view item carries only its layer_id (P-LAYOUT-04)")
+        if kind == "Other" and not names:
+            problem(spot, "an Other item needs both class names (P-LAYOUT-04)")
+
+
+def check_constraints(spot, constraints, layer, nodes, seen, guides):
+    for constraint in constraints:
+        where = "%s constraint %d" % (spot, constraint.get("id", 0))
+        if constraint.get("id", 0) == 0:
+            problem(where, "a constraint has id 0 (P-LAYOUT-03)")
+        canonical = json.dumps(constraint, sort_keys=True)
+        if seen.setdefault(constraint.get("id", 0), canonical) != canonical:
+            problem(where, "differs from another place the same id appears (P-LAYOUT-03)")
+        if not constraint.get("class_name"):
+            problem(where, "class_name must be given (P-LAYOUT-02)")
+        items = [constraint[key] for key in ("first_item", "second_item") if key in constraint]
+        if "first_item" not in constraint or constraint.get("first_attribute", "NotAnAttribute") == "NotAnAttribute":
+            problem(where, "a constraint needs a first item and attribute")
+        if ("second_item" in constraint) != (constraint.get("second_attribute", "NotAnAttribute") != "NotAnAttribute"):
+            problem(where, "second_item is absent exactly when second_attribute is NotAnAttribute (P-LAYOUT-05)")
+        if not 1 <= constraint.get("priority", 0) <= 1000:
+            problem(where, "priority %g is outside 1 to 1000" % constraint.get("priority", 0))
+        for item in items:
+            check_item(where, item, nodes, guides)
+        if not any(item.get("kind", "View") != "Other" and item.get("layer_id") == layer for item in items):
+            problem(where, "involves neither layer %d nor one of its layout guides (P-LAYOUT-01)" % layer)
+
+
 def attribute_frames(scenarios):
     """Yields (where, layer id, attribute groups) for every attribute list a Server sends."""
     for scenario, frames in sorted(scenarios.items()):
@@ -152,6 +203,7 @@ def main():
     for node in nodes.values():
         children.setdefault(node.get("parent_id", 0), []).append(node["id"])
 
+    constraint_ids, guide_ids = {}, {}
     attributes, flags = {}, {}
     for where, layer, groups in attribute_frames(scenarios):
         check_attributes(where, groups)
@@ -253,6 +305,12 @@ def main():
                             problem(spot, "attribute presence does not match the request")
                     if status != "LayerNotFound" and "attribute_groups" in detail and not ask.get("want_attributes", False):
                         problem(spot, "attributes were not requested")
+                    constraints = detail.get("constraints", [])
+                    if constraints and not ask.get("want_constraints", False):
+                        problem(spot, "constraints were not requested (P-LAYOUT-01)")
+                    if constraints and "view_class_name" not in nodes.get(layer, {}):
+                        problem(spot, "only a layer that backs a view has constraints (P-LAYOUT-01)")
+                    check_constraints(spot, constraints, layer, nodes, constraint_ids, guide_ids)
                     for key in ("solo", "group"):
                         if key in detail:
                             check_image("%s %s" % (spot, key), detail[key], nodes.get(layer, {}).get("bounds"))

@@ -149,6 +149,8 @@ table LayerDetailRequest {
   want_solo: bool;
   want_group: bool;
   want_attributes: bool;
+  // 0.4
+  want_constraints: bool;
 }
 
 table GetLayerDetails {
@@ -209,6 +211,8 @@ table LayerDetail {
   solo: Image;                   // the layer without its sublayers
   group: Image;                  // the layer with its whole subtree
   attribute_groups: [AttributeGroup];
+  // 0.4
+  constraints: [LayoutConstraint];  // set when constraints were requested and the layer backs a view
 }
 
 table LayerDetailsChunk {
@@ -231,6 +235,50 @@ table SetAttributeResult {
 
 table GetSubtree {
   root_id: ulong;                // answered with Hierarchy
+}
+
+// ---- Layout (0.4) ----
+
+// Same raw values as NSLayoutConstraint.Attribute.
+enum LayoutAttribute : ubyte {
+  NotAnAttribute = 0,
+  Left = 1, Right = 2, Top = 3, Bottom = 4, Leading = 5, Trailing = 6,
+  Width = 7, Height = 8, CenterX = 9, CenterY = 10,
+  LastBaseline = 11, FirstBaseline = 12,
+  LeftMargin = 13, RightMargin = 14, TopMargin = 15, BottomMargin = 16,
+  LeadingMargin = 17, TrailingMargin = 18,
+  CenterXWithinMargins = 19, CenterYWithinMargins = 20
+}
+
+enum LayoutRelation : ubyte { Equal = 0, LessThanOrEqual = 1, GreaterThanOrEqual = 2 }
+
+enum LayoutItemKind : ubyte { View = 0, LayoutGuide = 1, Other = 2 }
+
+enum ConstraintStatus : ubyte { Unknown = 0, Satisfied = 1, Unsatisfied = 2 }
+
+table LayoutItem {
+  kind: LayoutItemKind;
+  layer_id: ulong;               // View: the view's layer; LayoutGuide: the owning view's layer
+  guide_id: ulong;               // LayoutGuide only
+  class_name: string;            // LayoutGuide and Other: runtime name of the item's class
+  display_class_name: string;
+  identifier: string;            // LayoutGuide only: UILayoutGuide.identifier
+  guide_frame: Rect;             // LayoutGuide only: layoutFrame, in the owning view's bounds
+}
+
+table LayoutConstraint {
+  id: ulong;                     // stable within a connection, like layer IDs
+  class_name: string;            // runtime name, e.g. NSAutoresizingMaskLayoutConstraint
+  identifier: string;            // NSLayoutConstraint.identifier
+  first_item: LayoutItem;
+  first_attribute: LayoutAttribute;
+  relation: LayoutRelation;
+  second_item: LayoutItem;       // absent when the constraint has no second item
+  second_attribute: LayoutAttribute;
+  multiplier: double;
+  constant: double;
+  priority: float;               // 1 to 1000
+  status: ConstraintStatus;      // whether the relation holds in the current layout
 }
 
 // ---- Control ----

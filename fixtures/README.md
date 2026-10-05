@@ -38,14 +38,14 @@ After changing `src/` or the schema:
 scripts/build-fixtures.sh fixtures/bin
 ```
 
-`scripts/verify.sh` regenerates them and compares the result with `bin/`, failing on any difference; it also uses `scripts/check-fixtures.py` to check the fixtures against the clauses the schema cannot express (sequence numbers, chunk counts, how responses match requests, image sizes, the attributes' editing fields, the content of subtrees, the reply each modification request should get). Do not edit the files under `bin/` by hand.
+`scripts/verify.sh` regenerates them and compares the result with `bin/`, failing on any difference; it also uses `scripts/check-fixtures.py` to check the fixtures against the clauses the schema cannot express (sequence numbers, chunk counts, how responses match requests, image sizes, the attributes' editing fields, the content of subtrees, the reply each modification request should get, the structure of constraints). Do not edit the files under `bin/` by hand.
 
 ## Scenarios
 
 | Scenario | Content | Clauses verified |
 |---|---|---|
 | `handshake` | A successful handshake, after which the Server sends the current state | P-HELLO-01, 02; P-EVT-01, 02 |
-| `handshake-version-mismatch` | The Client's major version is 1; the Server still replies with its own `Hello` (0.3), then closes the connection | P-HELLO-02, 03 |
+| `handshake-version-mismatch` | The Client's major version is 1; the Server still replies with its own `Hello` (0.4), then closes the connection | P-HELLO-02, 03 |
 | `busy` | The only frame received when connecting to a Server that already has a Client | P-TRANS-03 |
 | `app-icon` | Getting the app icon | P-REQ-02; P-ICON-01; P-IMG-01 |
 | `hierarchy` | A hierarchy of one window and nine nodes, with view controllers and member variables | P-HIER-01 to 04, 06 to 09 |
@@ -57,8 +57,9 @@ scripts/build-fixtures.sh fixtures/bin
 | `set-attribute` | Changing text, an enum, a color (from nil to a color and back to nil) and `view.alpha` (which changes `layer.opacity` with it), each reply holding the whole layer's attributes | P-REQ-02; P-ATTR-06, 07; P-SET-01, 02 |
 | `set-attribute-rejected` | A layer that does not exist, a read-only attribute, the wrong member, nil for an attribute that does not accept nil | P-SET-03; P-REQ-05 |
 | `subtree` | Getting the subtree of node 4; getting a layer that does not exist | P-HIER-10, 11 |
+| `layout-constraints` | Five layers, constraints only: constraints to views and to the safe area, without a second item, an optional constraint that does not hold, the same constraint in two places, constraints UIKit generates, a layer that does not back a view, a layer that does not exist | P-DET-02; P-LAYOUT-01 to 06 |
 
-Clauses no fixture covers: in P-HIER-01, the ordering of siblings with different `zPosition` (it is already done on the wire; a fixture can only give the result, not the `sublayers` before sorting); P-HIER-05 and P-ATTR-05 (non-finite numbers sent as 0); P-HELLO-04 (a handshake with different minor versions); P-IMG-03 (`scale` is nominal); P-DET-05 and P-DET-08 (scaling down oversized images); P-DET-06 (the chunk size limit); P-FRAME-03 (malformed frames); P-HELLO-05, 06 and P-REQ-08; the "change no state" part of P-SET-03; P-SET-04 (the Server adjusting the value written); P-SET-05 (layout, no animations); P-SET-06. These rely on each side's own tests.
+Clauses no fixture covers: in P-HIER-01, the ordering of siblings with different `zPosition` (it is already done on the wire; a fixture can only give the result, not the `sublayers` before sorting); P-HIER-05 and P-ATTR-05 (non-finite numbers sent as 0); P-HELLO-04 (a handshake with different minor versions); P-IMG-03 (`scale` is nominal); P-DET-05 and P-DET-08 (scaling down oversized images); P-DET-06 (the chunk size limit); P-FRAME-03 (malformed frames); P-HELLO-05, 06 and P-REQ-08; the "change no state" part of P-SET-03; P-SET-04 (the Server adjusting the value written); P-SET-05 (layout, no animations); P-SET-06; the "no filtering" of P-LAYOUT-02; the judgement of P-LAYOUT-06 (a fixture can only give the result); the handling of layers moved out of their window in P-HIER-12. These rely on each side's own tests.
 
 ## Nodes of the `hierarchy` scenario
 
@@ -164,3 +165,20 @@ Layer 4's attributes appear only in this scenario: the `layer` group has `layer.
 ## The `subtree` scenario
 
 Getting the subtree of node 4 replies with nodes 4 and 5, exactly as in the `hierarchy` scenario; node 4's `parent_id` is still 2, and `key_window_id` is 1. Getting layer 99, which does not exist, replies with `LayerNotFound`.
+
+## The `layout-constraints` scenario (0.4)
+
+One `GetLayerDetails` requests layers 3, 4, 9, 8 and 99, each for constraints only (`want_constraints`), in one chunk. The layers are the nodes of the `hierarchy` scenario. Constraints are written as "first item.attribute relation second item.attribute × multiplier + constant", where the numbers are layer IDs:
+
+| ID | Constraint | Priority | `status` | Appears in | Notable |
+|---|---|---|---|---|---|
+| 1 | `3.centerX == 2.centerX` | 1000 | `Satisfied` | 3 | |
+| 2 | `3.top == 2.safeAreaLayoutGuide.top + 49` | 1000 | `Satisfied` | 3 | The second item is a layout guide: `guide_id` 1, `UILayoutGuide`, `identifier` `UIViewSafeAreaLayoutGuide`, `guide_frame` 0, 59, 393, 759 |
+| 3 | `3.width == 240` | 250 | `Unsatisfied` | 3 | No second item; has `identifier` `titleLabel.preferredWidth`; layer 3 is actually 200 wide |
+| 4 | `4.top == 3.bottom + 78` | 1000 | `Satisfied` | 3, 4 | Exactly the same in both places; layer 4 is rotated 30°, and by the untransformed geometry its top is 300 − 90 = 210, which equals 132 + 78 |
+| 5 | `4.width == 300` | 1000 | `Satisfied` | 4 | No second item |
+| 6 | `4.height == 180` | 1000 | `Satisfied` | 4 | No second item |
+| 7 | `4.centerX == 2.centerX` | 1000 | `Satisfied` | 4 | |
+| 8 to 11 | `9.left == 2.left + 300`, `9.width == 0`, `9.top == 2.top + 700`, `9.height == 0` | 1000 | `Satisfied` | 9 | `class_name` is `NSAutoresizingMaskLayoutConstraint` (P-LAYOUT-02) |
+
+All multipliers are 1. The `class_name` of constraints 1 to 7 is `NSLayoutConstraint`. Layer 8 does not back a view, so its details have no `constraints`; layer 99 does not exist, and its `status` is `LayerNotFound`.

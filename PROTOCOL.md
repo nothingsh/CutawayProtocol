@@ -1,8 +1,8 @@
 # Cutaway Protocol
 
-The Cutaway protocol is the contract between CutawayServer (an SDK embedded in an iOS app) and Cutaway (a macOS app). The Server listens on a local port; once the Client connects, it retrieves the app's layer hierarchy, images and attributes by request and response, and can modify attributes. This document is normative: both implementations follow this document and `schema/cutaway.fbs`.
+The Cutaway protocol is the contract between CutawayServer (an SDK embedded in an iOS app) and Cutaway (a macOS app). The Server listens on a local port; once the Client connects, it retrieves the app's layer hierarchy, images, attributes and Auto Layout constraints by request and response, and can modify attributes. This document is normative: both implementations follow this document and `schema/cutaway.fbs`.
 
-Protocol version: 0.3
+Protocol version: 0.4
 
 Numbered paragraphs are normative clauses. "Must" and "must not" state requirements; "may" states what is allowed but not required. Everything else is explanation.
 
@@ -17,7 +17,7 @@ The payload of every frame is a `Frame`, whose `body` is one of the following me
 | `AppIcon` | Server → Client | Response to `GetAppIcon` |
 | `GetHierarchy` | Client → Server | Gets the whole layer tree, without images or attributes |
 | `Hierarchy` | Server → Client | Response to `GetHierarchy` |
-| `GetLayerDetails` | Client → Server | Gets images and attributes by layer ID; streamed |
+| `GetLayerDetails` | Client → Server | Gets images, attributes and constraints by layer ID; streamed |
 | `LayerDetailsChunk` | Server → Client | One chunk of the response to `GetLayerDetails` |
 | `StreamEnd` | Server → Client | The frame that ends a stream |
 | `Cancel` | Client → Server | Cancels a stream in progress |
@@ -127,7 +127,9 @@ Only root views are marked with their view controller, rather than every layer c
 
 **P-HIER-10** The response to `GetSubtree` is `Hierarchy`. The first node in `nodes` is the layer given by `root_id`, followed by all its descendants, with the order and the field rules of P-HIER-01 and 03 to 09; the first node's `parent_id` is its actual parent layer, or 0 when it is the root layer of a window. `key_window_id` is the same as in the response to `GetHierarchy`.
 
-**P-HIER-11** When the layer given by `root_id` does not exist (it has been released, or is no longer in any window), the Server must reply with `Error` (code `LayerNotFound`).
+**P-HIER-11** When the layer given by `root_id` does not exist (P-HIER-12), the Server must reply with `Error` (code `LayerNotFound`).
+
+**P-HIER-12** In this document, a layer that "does not exist" is one that has been released, or is no longer in any window. P-HIER-11, P-DET-02 and P-SET-03 all use this meaning. (Since 0.4; before, only P-HIER-11 stated this meaning.)
 
 `GetSubtree` refreshes part of the hierarchy: the Client replaces the subtree rooted at this layer in its model with the response. IDs do not change within a connection (P-HIER-03), so a layer that has not changed is still the same node; a new layer has a new ID, and a layer that no longer appears has been removed. The position of the subtree's root among its siblings is not in the response; when its `z_position` changes, the Client has to refresh its parent's subtree to get the new order.
 
@@ -149,7 +151,7 @@ Only root views are marked with their view controller, rather than every layer c
 
 **P-DET-08** The uncompressed pixel data of a single image must not exceed 67108864 bytes (64 MiB). Where it would, the Server must scale the image down proportionally and reduce `scale` accordingly. This holds whatever the value of `max_texture_dimension`.
 
-`want_solo`, `want_group` and `want_attributes` each say whether the corresponding content is wanted. A request with all three false still gets a `LayerDetail` that holds only `layer_id` and `status`.
+`want_solo`, `want_group`, `want_attributes` and `want_constraints` each say whether the corresponding content is wanted. A request with all four false still gets a `LayerDetail` that holds only `layer_id` and `status`.
 
 What P-DET-07 means: the Client pins the image to the four corners of the layer's `bounds`, and then applies the layer's transform and opacity itself. P-DET-08 ensures that a `LayerDetail` with two images does not exceed the limit of a single frame.
 
@@ -205,6 +207,32 @@ After a modification, the Client works out which layers' images need updating; t
 
 Continuous modifications (for example dragging a slider): keep only one `SetAttribute` in flight for the same attribute at a time; of the new values produced before the reply arrives, keep only the latest, and send it once the reply arrives. An image stream in progress is queued ahead of the modification (P-REQ-06); `Cancel` it first if needed. Undo is done by the Client: it has the old value before modifying, so undoing is just another `SetAttribute`.
 
+After changing an attribute that causes layout (for example compression resistance priority), the `status` of constraints (P-LAYOUT-06) may change: when step 3 of the recommended approach above requests `GetLayerDetails` again, a Client that is showing constraints includes `want_constraints`.
+
+## Constraints
+
+**P-LAYOUT-01** When `want_constraints` is true and the layer backs a view, the `constraints` of the `LayerDetail` must list all active constraints whose first or second item is this view or a layout guide owned by this view, and is empty when there are none. When the layer does not back a view, or `want_constraints` is false, `constraints` is absent or empty. The order is unspecified.
+
+**P-LAYOUT-02** Constraints include those UIKit generates itself (for example those translated from an autoresizing mask, and the internal constraints of layout guides); the Server must not filter them by origin. `class_name` is the runtime class name of the constraint object, and `identifier` is its `identifier`, absent when it has none.
+
+**P-LAYOUT-03** A constraint's `id` and a layout guide's `guide_id` must not be 0. Within a connection the same object keeps the same ID, and after the object is released its ID must not be assigned to another object (as in P-HIER-03). When the same constraint appears in the details of several layers, its `id` is the same everywhere.
+
+**P-LAYOUT-04** When the `kind` of a `LayoutItem` is `View`, `layer_id` is the layer that backs this view; when it is `LayoutGuide`, `layer_id` is the layer that backs the view owning the guide, and `guide_id`, `class_name`, `display_class_name` and `guide_frame` are given, plus `identifier` when it is not empty; when it is `Other` (an object that is neither a view nor a layout guide), only `class_name` and `display_class_name` are given. `display_class_name` follows the same rule as for hierarchy nodes. `guide_frame` is the guide's `layoutFrame`, in the owner's coordinate space.
+
+**P-LAYOUT-05** When a constraint has no second item, `second_item` is absent and `second_attribute` is `NotAnAttribute`. `multiplier`, `constant` and `priority` are the current values of the constraint object; non-finite numbers are sent as 0 (as in P-ATTR-05).
+
+**P-LAYOUT-06** `status` says whether the constraint's relation holds in the layout at the time the Server takes the details: `Satisfied` when it holds, `Unsatisfied` when it does not. Both sides are computed with the geometry Auto Layout itself uses (alignment rectangles, layout margins, the `layoutFrame` of layout guides, unaffected by `transform`), and a difference of no more than half a pixel counts as holding. When the Server cannot compute it (for example for text baselines), it is `Unknown`.
+
+A view's constraints are all the active constraints that refer to it: the same constraint appears in the details of the views at both of its ends, and `id` lets the Client recognize it as the same one. Inactive constraints are in no view's `constraints` and the Server cannot find them, so the constraints given are all active. When an optional constraint (priority below 1000) loses out, or UIKit breaks a required constraint because of a conflict, `status` is `Unsatisfied` either way.
+
+The view end of a constraint gives only the layer ID; class names and member variable names are on the hierarchy nodes. Layout guides (the safe area, `layoutMarginsGuide`, the keyboard guide, the spacers inside `UIStackView`, and so on) are not views and have no layers, so they are not hierarchy nodes; the Client converts the owner into window coordinates and adds `guide_frame` to draw a guide in the preview. The values of `LayoutAttribute` are the same as UIKit's `NSLayoutConstraint.Attribute`; `LayoutRelation` differs.
+
+One way to find the constraints: an active constraint is installed on the nearest common ancestor of its two ends, so walk from the view up through its superviews to the window, check the `constraints` of each, and keep those that refer to the view or to its layout guides.
+
+A 0.3 Server does not know `want_constraints` and ignores it, and the details it returns have no `constraints`. The Client decides whether to show constraints by the negotiated version, and should not take their absence to mean "this view has no constraints".
+
+The distance between two layers is computed by the Client after converting both into the same coordinate space under P-HIER-06; the protocol does not give it separately.
+
 ## Error codes
 
 | Code | Meaning |
@@ -241,8 +269,8 @@ The frame sequence below corresponds to the scenarios in `fixtures/`, and is for
 
 | Direction | `request_id` | Message | Notes |
 |---|---|---|---|
-| Client → Server | 0 | `Hello` | Protocol 0.3, `role` `Client` |
-| Server → Client | 0 | `Hello` | Protocol 0.3, `role` `Server`, with app information |
+| Client → Server | 0 | `Hello` | Protocol 0.4, `role` `Client` |
+| Server → Client | 0 | `Hello` | Protocol 0.4, `role` `Server`, with app information |
 | Server → Client | 0 | `AppStateChanged` | Current state `Active` |
 | Client → Server | 1 | `GetAppIcon` | |
 | Server → Client | 1 | `AppIcon` | |
