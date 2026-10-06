@@ -85,11 +85,15 @@ Because the Server still replies with its own `Hello` when the major versions do
 
 **P-REQ-05** When an ordinary request fails, the response is `Error`, with the same `request_id` as the request. When a streaming request fails, its response ends with `StreamEnd` (status `Failed`, with `error`).
 
-**P-REQ-06** The Server handles requests one at a time, in the order received. `Cancel` is the exception: the Server must handle it while the current request is in progress.
+**P-REQ-06** The Server handles requests one at a time, in the order received. `Cancel` is the exception: the Server must handle it while the current request is in progress, except while reading is paused under P-REQ-09. ("Except while reading is paused" since 0.5.5.)
 
 **P-REQ-07** A frame whose `body` is a union member the receiver does not know fails verification, and is handled under P-FRAME-03. A peer that follows P-HELLO-04 does not send such frames.
 
 **P-REQ-08** After the handshake completes, on receiving a frame that passes verification but should not appear (`body` absent, another `Hello`, or a message only this side should send), the Server must reply with `Error` (code `UnexpectedMessage`, `request_id` the same as that frame's) and keep the connection; the Client must close the connection.
+
+**P-REQ-09** An outstanding request is one the Server has read in and for which it has not yet sent the last response frame (the response of an ordinary request, the `StreamEnd` of a streaming request); `Cancel` does not count. When the outstanding requests reach 64, the Server may pause reading from the connection, and must resume reading when they drop below 64; with fewer than 64 it must not pause. While paused, the Server keeps sending, and a `Cancel` from the Client is not handled until reading resumes; the stream it refers to may have ended by then, in which case the `Cancel` is ignored under P-REQ-04. For `Cancel` to take effect promptly, the Client should keep fewer than 64 requests (not counting `Cancel`) sent but without their last response frame. (Since 0.5.5.)
+
+P-REQ-09 spares the Server from buffering requests without limit for a Client that only sends requests and never reads the replies: once the Server pauses reading, TCP flow control stops the Client from writing (backpressure is left to TCP, with no flow control of the protocol's own). 64 is the lower bound at which the Server may pause, not an upper bound the Client must stay under: a Client with more requests does not violate the protocol, and its requests are still answered in order; only `Cancel` may arrive late. Every request outstanding at the Server is one the Client is still waiting for, so a Client that follows this advice never makes the Server pause reading. A Client that cannot write must keep reading: the Server resumes reading only after it sends responses and completes requests.
 
 ## Events and app state
 
