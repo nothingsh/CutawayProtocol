@@ -20,7 +20,7 @@ The payload of every frame is a `Frame`, whose `body` is one of the following me
 | `GetLayerDetails` | Client → Server | Gets images, attributes and constraints by layer ID; streamed |
 | `LayerDetailsChunk` | Server → Client | One chunk of the response to `GetLayerDetails` |
 | `StreamEnd` | Server → Client | The frame that ends a stream |
-| `Cancel` | Client → Server | Cancels a stream in progress |
+| `Cancel` | Client → Server | Cancels a stream that has not ended |
 | `Error` | Server → Client | Error |
 | `AppStateChanged` | Server → Client | Event: the app's active state changed |
 | `SetAttribute` | Client → Server | Modifies one attribute of one layer (0.3) |
@@ -67,9 +67,11 @@ P-FRAME-06 is aimed at verifiers' default limits. The FlatBuffers Swift runtime 
 
 **P-HELLO-04** When the minor versions differ, the handshake succeeds and both sides work at the lower minor version: neither may send a message, field value, enum value or union member that does not exist in that minor version, nor content that can only be understood correctly under the clauses of a higher minor version (for example, a later version letting objects that did not appear before appear as hierarchy nodes). Table fields are exempt: a sender may write table fields appended in higher minor versions as usual, without choosing by the negotiated minor version, because a receiver ignores fields it does not know, and P-EVO-07 ensures that ignoring them does not lead it to misread other fields. ("Content that can only be understood correctly under the clauses of a higher minor version" stated explicitly since 0.5.2.)
 
-**P-HELLO-05** Before the handshake completes, when the Server receives any message other than `Hello`, it must reply with `Error` (code `UnexpectedMessage`) and close the connection. The same applies when the `Hello` received has a `role` other than `Client`, or has no `protocol` field.
+**P-HELLO-05** Before the handshake completes, when the Server receives any message other than `Hello`, it must reply with `Error` (code `UnexpectedMessage`, `request_id` the same as that frame's) and close the connection. The same applies when the `Hello` received has a `role` other than `Client`, or has no `protocol` field. ("`request_id` the same as that frame's" stated explicitly since 0.5.6; Servers already did so.)
 
 **P-HELLO-06** If no `Hello` arrives within 5 seconds of the connection being established, the Server must close the connection.
+
+**P-HELLO-07** Before the handshake completes, when the Client receives any frame other than `Hello`, it must treat the handshake as failed and close the connection, sending no other message. Such a frame can only be an `Error` (`Busy` from P-TRANS-03, `MalformedFrame` from P-FRAME-03, `UnexpectedMessage` from P-HELLO-05), and the Client may use its code to tell the user why. (Since 0.5.6.)
 
 Because the Server still replies with its own `Hello` when the major versions do not match, the Client learns the other side's version and app information, and can tell the user why this app cannot be inspected.
 
@@ -86,6 +88,8 @@ Because the Server still replies with its own `Hello` when the major versions do
 **P-REQ-05** When an ordinary request fails, the response is `Error`, with the same `request_id` as the request. When a streaming request fails, its response ends with `StreamEnd` (status `Failed`, with `error`).
 
 **P-REQ-06** The Server handles requests one at a time, in the order received. `Cancel` is the exception: the Server must handle it while the current request is in progress, except while reading is paused under P-REQ-09. ("Except while reading is paused" since 0.5.5.)
+
+The exception for `Cancel` relies on the Server reading all the time: while other requests wait in line, a `Cancel` is still read in, and the Server handles it on sight. Once the outstanding requests reach a certain number (P-REQ-09), the Server may pause reading, and a `Cancel` then stays in the connection like any other frame until reading resumes. Once read, it is still handled under P-REQ-04: if the stream it refers to has not ended, the stream ends with `Cancelled`; if it has, the `Cancel` is ignored. The order of the responses is unaffected and still follows the order of the requests.
 
 **P-REQ-07** A frame whose `body` is a union member the receiver does not know fails verification, and is handled under P-FRAME-03. A peer that follows P-HELLO-04 does not send such frames.
 
@@ -145,7 +149,7 @@ Only root views are marked with their view controller, rather than every layer c
 
 ## Layer details
 
-**P-DET-01** In a stream that completes normally, each layer in the request must appear in exactly one `LayerDetail`. A cancelled or failed stream may contain only some of them.
+**P-DET-01** In a stream that completes normally, each entry of the request list must correspond to exactly one `LayerDetail`; when the same layer appears in several entries, each entry gets one. A cancelled or failed stream may contain only some of them. ("Each entry" stated explicitly since 0.5.6; before, it read "each layer" and did not cover repeated entries; Servers already produced one per entry.)
 
 **P-DET-02** When a requested layer does not exist, the corresponding `LayerDetail` has `status` `LayerNotFound`, its other fields are absent or empty (for example `attribute_groups` of length 0), and the stream continues.
 
@@ -215,7 +219,7 @@ After a modification, the Client works out which layers' images need updating; t
 2. Send `GetSubtree` for the root layer of the window that contains the target layer. The modification may cause layout of the parent and further up, and may change the drawing order of siblings; the hierarchy carries no images, so fetching one window is cheap.
 3. Compare with the old nodes, and send `GetLayerDetails` again for: the target layer and its whole subtree (for example `tintColor` changes how the whole subtree renders, while their geometry stays the same); its ancestors (only `group` is needed); layers with any changed node field; new layers. Remove layers that no longer appear from the model.
 
-Continuous modifications (for example dragging a slider): keep only one `SetAttribute` in flight for the same attribute at a time; of the new values produced before the reply arrives, keep only the latest, and send it once the reply arrives. An image stream in progress is queued ahead of the modification (P-REQ-06); `Cancel` it first if needed. Undo is done by the Client: it has the old value before modifying, so undoing is just another `SetAttribute`.
+Continuous modifications (for example dragging a slider): keep only one `SetAttribute` in flight for the same attribute at a time; of the new values produced before the reply arrives, keep only the latest, and send it once the reply arrives. An image stream in progress is queued ahead of the modification (P-REQ-06); `Cancel` it first if needed. `Cancel` takes effect promptly only while fewer requests are in flight than the number in P-REQ-09. Undo is done by the Client: it has the old value before modifying, so undoing is just another `SetAttribute`.
 
 After changing an attribute that causes layout (for example compression resistance priority), the `status` of constraints (P-LAYOUT-06) may change: when step 3 of the recommended approach above requests `GetLayerDetails` again, a Client that is showing constraints includes `want_constraints`.
 
