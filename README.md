@@ -12,7 +12,7 @@
 
 # Cutaway Protocol
 
-The wire protocol between **CutawayServer**, an iOS SDK embedded in the app being inspected, and **Cutaway**, a macOS app. Cutaway connects to the server over TCP and retrieves the app's layer hierarchy, screenshots, attributes and Auto Layout constraints, and can modify attributes while the app runs.
+The wire protocol between **[CutawayServer](https://github.com/nothingsh/CutawayServer)**, an iOS SDK embedded in the app being inspected, and **[Cutaway](https://github.com/nothingsh/Cutaway)**, a macOS app. Cutaway connects to the server over TCP and retrieves the app's layer hierarchy, screenshots, attributes and Auto Layout constraints, and can modify attributes while the app runs.
 
 This repository is the single source of truth for that protocol. It contains no Swift code: both ends pin a tag of this repository as a git submodule and generate their code from the schema.
 
@@ -43,7 +43,7 @@ Every rule above is a clause in `PROTOCOL.md`; this list is only an orientation.
 
 The protocol version is `MAJOR.MINOR` in `PROTOCOL_VERSION`; releases are tagged `vMAJOR.MINOR.PATCH`. The schema evolves by appending only: fields at the end of tables, members at the end of enums and unions. Structs, the file identifier and the root type never change. Anything else is a major version bump. A `PATCH` release changes wording or fixtures without touching the schema. The full rules are the `P-EVO` clauses in `PROTOCOL.md`.
 
-The protocol is currently **0.x and not yet frozen**. Freezing it as 1.0 will be a major version bump: a 0.x peer and a 1.x peer will fail the handshake by design.
+The protocol is **frozen at 1.0**. From here on the schema only grows by appending, in minor versions. 1.0 was a major version bump from 0.5: a 0.x peer and a 1.x peer fail the handshake by design.
 
 ## Implementing a peer
 

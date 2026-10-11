@@ -14,7 +14,7 @@
 
 # Cutaway Protocol
 
-Das Wire-Protokoll zwischen **CutawayServer**, einem iOS-SDK, das in die zu untersuchende App eingebettet wird, und **Cutaway**, einer macOS-App. Cutaway verbindet sich per TCP mit dem Server, ruft die Layer-Hierarchie, Screenshots, Attribute und Auto-Layout-Constraints der App ab und kann Attribute zur Laufzeit der App ändern.
+Das Wire-Protokoll zwischen **[CutawayServer](https://github.com/nothingsh/CutawayServer)**, einem iOS-SDK, das in die zu untersuchende App eingebettet wird, und **[Cutaway](https://github.com/nothingsh/Cutaway)**, einer macOS-App. Cutaway verbindet sich per TCP mit dem Server, ruft die Layer-Hierarchie, Screenshots, Attribute und Auto-Layout-Constraints der App ab und kann Attribute zur Laufzeit der App ändern.
 
 Dieses Repository ist die einzige maßgebliche Quelle für dieses Protokoll. Es enthält keinen Swift-Code: Beide Seiten binden einen Tag dieses Repositorys als Git-Submodul ein und generieren ihren Code aus dem Schema.
 
@@ -48,7 +48,7 @@ Jede der obigen Regeln ist eine Klausel in `PROTOCOL.md`; diese Liste dient nur 
 
 Die Protokollversion ist `MAJOR.MINOR` in `PROTOCOL_VERSION`; Releases werden als `vMAJOR.MINOR.PATCH` getaggt. Das Schema entwickelt sich ausschließlich durch Anhängen weiter: Felder am Ende von Tabellen, Member am Ende von Enums und Unions. Structs, der File Identifier und der Root-Typ ändern sich nie. Alles andere erfordert eine neue Major-Version. Ein `PATCH`-Release ändert Formulierungen oder Fixtures, ohne das Schema anzutasten. Die vollständigen Regeln sind die `P-EVO`-Klauseln in `PROTOCOL.md`.
 
-Das Protokoll ist derzeit **0.x und noch nicht eingefroren**. Das Einfrieren als 1.0 wird eine neue Major-Version sein: Eine 0.x-Gegenstelle und eine 1.x-Gegenstelle scheitern absichtlich am Handshake.
+Das Protokoll ist **bei 1.0 eingefroren**. Ab jetzt wächst das Schema nur noch durch Anhängen, in Minor-Versionen. 1.0 war gegenüber 0.5 eine neue Major-Version: Eine 0.x-Gegenstelle und eine 1.x-Gegenstelle scheitern absichtlich am Handshake.
 
 <a id="implementing-a-peer"></a>
 ## Eine Gegenstelle implementieren

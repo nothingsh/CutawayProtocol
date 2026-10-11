@@ -45,7 +45,7 @@ scripts/build-fixtures.sh fixtures/bin
 | Scenario | Content | Clauses verified |
 |---|---|---|
 | `handshake` | A successful handshake, after which the Server sends the current state | P-HELLO-01, 02; P-EVT-01, 02 |
-| `handshake-version-mismatch` | The Client's major version is 1; the Server still replies with its own `Hello` (0.5), then closes the connection | P-HELLO-02, 03 |
+| `handshake-version-mismatch` | A 1.0 Client connects to a Server still at 0.5; the Server still replies with its own `Hello` (0.5), then closes the connection | P-HELLO-02, 03 |
 | `busy` | The only frame received when connecting to a Server that already has a Client | P-TRANS-03 |
 | `app-icon` | Getting the app icon | P-REQ-02; P-ICON-01; P-IMG-01 |
 | `hierarchy` | A hierarchy of one window and nine nodes, with view controllers and member variables | P-HIER-01 to 04, 06 to 09 |

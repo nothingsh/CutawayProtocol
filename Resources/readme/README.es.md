@@ -14,7 +14,7 @@
 
 # Cutaway Protocol
 
-El protocolo de comunicación entre **CutawayServer**, un SDK de iOS integrado en la app que se inspecciona, y **Cutaway**, una app de macOS. Cutaway se conecta al servidor por TCP y obtiene la jerarquía de capas de la app, capturas de pantalla, atributos y restricciones de Auto Layout, y puede modificar atributos mientras la app se ejecuta.
+El protocolo de comunicación entre **[CutawayServer](https://github.com/nothingsh/CutawayServer)**, un SDK de iOS integrado en la app que se inspecciona, y **[Cutaway](https://github.com/nothingsh/Cutaway)**, una app de macOS. Cutaway se conecta al servidor por TCP y obtiene la jerarquía de capas de la app, capturas de pantalla, atributos y restricciones de Auto Layout, y puede modificar atributos mientras la app se ejecuta.
 
 Este repositorio es la única fuente de verdad de ese protocolo. No contiene código Swift: ambos extremos fijan una etiqueta de este repositorio como submódulo de git y generan su código a partir del schema.
 
@@ -48,7 +48,7 @@ Cada regla anterior es una cláusula de `PROTOCOL.md`; esta lista solo sirve de 
 
 La versión del protocolo es `MAJOR.MINOR` en `PROTOCOL_VERSION`; las publicaciones se etiquetan como `vMAJOR.MINOR.PATCH`. El schema evoluciona solo por adición: campos al final de las tablas, miembros al final de los enums y las uniones. Los structs, el identificador de archivo y el tipo raíz nunca cambian. Cualquier otro cambio supone subir la versión mayor. Una publicación `PATCH` cambia la redacción o los fixtures sin tocar el schema. Las reglas completas son las cláusulas `P-EVO` de `PROTOCOL.md`.
 
-Actualmente el protocolo está en **0.x y aún no está congelado**. Congelarlo como 1.0 supondrá subir la versión mayor: un extremo 0.x y uno 1.x fallarán el handshake por diseño.
+El protocolo está **congelado en 1.0**. A partir de ahora el esquema solo crece añadiendo, en versiones menores. La 1.0 subió la versión mayor respecto a la 0.5: un extremo 0.x y uno 1.x fallan el handshake por diseño.
 
 <a id="implementing-a-peer"></a>
 ## Implementar un extremo

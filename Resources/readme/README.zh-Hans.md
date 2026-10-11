@@ -14,7 +14,7 @@
 
 # Cutaway Protocol
 
-**CutawayServer** 与 **Cutaway** 之间的通信协议。CutawayServer 是嵌入在被检查 App 中的 iOS SDK，Cutaway 是一款 macOS App。Cutaway 通过 TCP 连接到服务端，获取 App 的图层层级、截图、属性和 Auto Layout 约束，并能在 App 运行时修改属性。
+**[CutawayServer](https://github.com/nothingsh/CutawayServer)** 与 **[Cutaway](https://github.com/nothingsh/Cutaway)** 之间的通信协议。CutawayServer 是嵌入在被检查 App 中的 iOS SDK，Cutaway 是一款 macOS App。Cutaway 通过 TCP 连接到服务端，获取 App 的图层层级、截图、属性和 Auto Layout 约束，并能在 App 运行时修改属性。
 
 本仓库是该协议唯一的权威来源。它不包含任何 Swift 代码：两端都以 git submodule 的方式钉住本仓库的某个 tag，并从 schema 生成各自的代码。
 
@@ -48,7 +48,7 @@
 
 协议版本是 `PROTOCOL_VERSION` 中的 `MAJOR.MINOR`；发布版本打 `vMAJOR.MINOR.PATCH` 形式的 tag。schema 只通过追加来演进：在 table 末尾添加字段，在 enum 和 union 末尾添加成员。struct、文件标识符和根类型永不改变。除此之外的任何改动都要升主版本号。`PATCH` 版本只修改措辞或夹具，不触及 schema。完整规则见 `PROTOCOL.md` 中的 `P-EVO` 条款。
 
-协议目前处于 **0.x 阶段，尚未冻结**。冻结为 1.0 将是一次主版本升级：0.x 的对端与 1.x 的对端按设计会握手失败。
+协议已**冻结为 1.0**。此后 schema 只通过追加演进，升次版本号。1.0 相对 0.5 是一次主版本升级：0.x 的对端与 1.x 的对端按设计会握手失败。
 
 <a id="implementing-a-peer"></a>
 ## 实现一个对端
