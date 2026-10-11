@@ -1,0 +1,43 @@
+name: Protocol change proposal
+description: Propose a new message, field, enum value or behavior.
+title: "[Proposal] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The schema evolves by appending only (the `P-EVO` clauses in PROTOCOL.md). Anything else is a major version bump. Please discuss a proposal here before opening a pull request.
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: What Cutaway or CutawayServer cannot do today, and why it matters.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Schema additions, new or changed clauses, and how each peer behaves.
+    validations:
+      required: true
+  - type: dropdown
+    id: compatibility
+    attributes:
+      label: Compatibility
+      options:
+        - Append only (minor version)
+        - Clause change only, no schema change
+        - Breaking (major version)
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: negotiation
+    attributes:
+      label: Older peers
+      description: How a peer on an earlier minor version behaves, and what the sender does when the negotiated version does not include the change (P-HELLO-04, P-EVO-06, P-EVO-07).
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

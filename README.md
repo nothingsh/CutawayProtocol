@@ -1,3 +1,15 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="Resources/readme/cutaway-protocol-dark.svg">
+    <img src="Resources/readme/cutaway-protocol-light.svg" alt="CutawayProtocol — The shared language of client and server." width="850">
+  </picture>
+</p>
+
+[![FlatBuffers](https://img.shields.io/badge/FlatBuffers-schema-blue)](schema/cutaway.fbs)
+[![License](https://img.shields.io/badge/License-MIT-lightgrey)](LICENSE)
+
+**English** | [简体中文](Resources/readme/README.zh-Hans.md) | [繁體中文](Resources/readme/README.zh-Hant.md) | [日本語](Resources/readme/README.ja.md) | [한국어](Resources/readme/README.ko.md) | [Español](Resources/readme/README.es.md) | [Français](Resources/readme/README.fr.md) | [Deutsch](Resources/readme/README.de.md)
+
 # Cutaway Protocol
 
 The wire protocol between **CutawayServer**, an iOS SDK embedded in the app being inspected, and **Cutaway**, a macOS app. Cutaway connects to the server over TCP and retrieves the app's layer hierarchy, screenshots, attributes and Auto Layout constraints, and can modify attributes while the app runs.
