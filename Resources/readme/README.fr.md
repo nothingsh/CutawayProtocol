@@ -14,7 +14,7 @@
 
 # Cutaway Protocol
 
-Le protocole réseau entre **CutawayServer**, un SDK iOS intégré à l'application inspectée, et **Cutaway**, une application macOS. Cutaway se connecte au serveur via TCP et récupère la hiérarchie des calques de l'application, des captures d'écran, les attributs et les contraintes Auto Layout ; il peut aussi modifier les attributs pendant l'exécution de l'application.
+Le protocole réseau entre **[CutawayServer](https://github.com/nothingsh/CutawayServer)**, un SDK iOS intégré à l'application inspectée, et **[Cutaway](https://github.com/nothingsh/Cutaway)**, une application macOS. Cutaway se connecte au serveur via TCP et récupère la hiérarchie des calques de l'application, des captures d'écran, les attributs et les contraintes Auto Layout ; il peut aussi modifier les attributs pendant l'exécution de l'application.
 
 Ce dépôt est l'unique source de référence de ce protocole. Il ne contient aucun code Swift : les deux extrémités épinglent un tag de ce dépôt sous forme de sous-module git et génèrent leur code à partir du schéma.
 
@@ -48,7 +48,7 @@ Chaque règle ci-dessus correspond à une clause de `PROTOCOL.md` ; cette liste 
 
 La version du protocole est `MAJOR.MINOR` dans `PROTOCOL_VERSION` ; les publications sont étiquetées `vMAJOR.MINOR.PATCH`. Le schéma évolue uniquement par ajout : des champs en fin de table, des membres en fin d'énumération et d'union. Les structs, l'identifiant de fichier et le type racine ne changent jamais. Toute autre modification entraîne un changement de version majeure. Une publication `PATCH` modifie la formulation ou les fixtures sans toucher au schéma. Les règles complètes sont les clauses `P-EVO` de `PROTOCOL.md`.
 
-Le protocole est actuellement en **0.x et n'est pas encore figé**. Le figer en 1.0 constituera un changement de version majeure : un pair 0.x et un pair 1.x échoueront à la poignée de main, et c'est voulu.
+Le protocole est **figé en 1.0**. Désormais, le schéma n'évolue que par ajout, dans des versions mineures. La 1.0 est un changement de version majeure par rapport à la 0.5 : un pair 0.x et un pair 1.x échouent à la poignée de main, et c'est voulu.
 
 <a id="implementing-a-peer"></a>
 ## Implémenter un pair

@@ -3,8 +3,8 @@
   "body_type": "Hello",
   "body": {
     "protocol": {
-      "major": 0,
-      "minor": 5
+      "major": 1,
+      "minor": 0
     },
     "role": "Server",
     "app": {

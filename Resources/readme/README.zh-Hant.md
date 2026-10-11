@@ -14,7 +14,7 @@
 
 # Cutaway Protocol
 
-**CutawayServer** 與 **Cutaway** 之間的通訊協定。CutawayServer 是內嵌於受檢視 App 中的 iOS SDK，Cutaway 則是一款 macOS App。Cutaway 透過 TCP 連線至伺服器，取得 App 的圖層階層、螢幕截圖、屬性與 Auto Layout 約束，並可在 App 執行期間修改屬性。
+**[CutawayServer](https://github.com/nothingsh/CutawayServer)** 與 **[Cutaway](https://github.com/nothingsh/Cutaway)** 之間的通訊協定。CutawayServer 是內嵌於受檢視 App 中的 iOS SDK，Cutaway 則是一款 macOS App。Cutaway 透過 TCP 連線至伺服器，取得 App 的圖層階層、螢幕截圖、屬性與 Auto Layout 約束，並可在 App 執行期間修改屬性。
 
 本儲存庫是該協定的唯一權威來源。其中不含任何 Swift 程式碼：兩端各自以 git submodule 釘選本儲存庫的某個 tag，並從 schema 產生各自的程式碼。
 
@@ -48,7 +48,7 @@
 
 協定版本為 `PROTOCOL_VERSION` 中的 `MAJOR.MINOR`；發布版本以 `vMAJOR.MINOR.PATCH` 標記 tag。schema 僅以追加方式演進：欄位加在 table 的末尾，成員加在 enum 與 union 的末尾。struct、檔案識別碼與根型別永不變更。其他任何改動都需升級主版本號。`PATCH` 版本只修改措辭或夾具，不動 schema。完整規則見 `PROTOCOL.md` 中的 `P-EVO` 條款。
 
-本協定目前為 **0.x，尚未凍結**。凍結為 1.0 將是一次主版本升級：0.x 與 1.x 的對端在設計上就會交握失敗。
+本協定已**凍結為 1.0**。此後 schema 只透過追加演進，升次版本號。1.0 相對 0.5 是一次主版本升級：0.x 與 1.x 的對端在設計上就會交握失敗。
 
 <a id="implementing-a-peer"></a>
 ## 實作對端

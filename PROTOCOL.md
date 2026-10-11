@@ -2,7 +2,7 @@
 
 The Cutaway protocol is the contract between CutawayServer (an SDK embedded in an iOS app) and Cutaway (a macOS app). The Server listens on a local port; once the Client connects, it retrieves the app's layer hierarchy, images, attributes and Auto Layout constraints by request and response, and can modify attributes. This document is normative: both implementations follow this document and `schema/cutaway.fbs`.
 
-Protocol version: 0.5
+Protocol version: 1.0
 
 Numbered paragraphs are normative clauses. "Must" and "must not" state requirements; "may" states what is allowed but not required. Everything else is explanation.
 
