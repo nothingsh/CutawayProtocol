@@ -1,0 +1,52 @@
+name: Specification issue
+description: A clause in PROTOCOL.md is ambiguous, contradictory, incomplete, or disagrees with the schema or fixtures.
+title: "[Spec] "
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for problems in the protocol itself. If one peer misbehaves while the protocol is clear, report it to that peer's repository instead.
+  - type: input
+    id: version
+    attributes:
+      label: Protocol version
+      description: The tag or commit you read, e.g. `v0.5.5`.
+      placeholder: v0.5.5
+    validations:
+      required: true
+  - type: input
+    id: clauses
+    attributes:
+      label: Clauses
+      description: The clause numbers involved, if any.
+      placeholder: P-REQ-06, P-REQ-09
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of problem
+      options:
+        - Ambiguous wording
+        - Clauses contradict each other
+        - Clause disagrees with the schema or fixtures
+        - Missing rule (a situation the clauses do not cover)
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Quote the text in question and explain how it can be read in more than one way, or what it leaves out.
+    validations:
+      required: true
+  - type: textarea
+    id: scenario
+    attributes:
+      label: Concrete scenario
+      description: A sequence of frames, or a situation between the two peers, where the problem shows up.
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested wording
+      description: Optional.

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Bug in the iOS SDK
+    url: https://github.com/nothingsh/CutawayServer/issues
+    about: The server misbehaves but the protocol itself is clear. Report it to CutawayServer.
+  - name: Bug in the macOS app
+    url: https://github.com/nothingsh/Cutaway/issues
+    about: The client misbehaves but the protocol itself is clear. Report it to Cutaway.

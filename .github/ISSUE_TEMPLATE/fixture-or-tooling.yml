@@ -1,0 +1,37 @@
+name: Fixture or tooling bug
+description: A fixture is wrong, or a script (verify.sh, build-fixtures.sh, get-flatc.sh, …) fails or gives a wrong result.
+title: "[Fixtures] "
+labels: ["bug"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Protocol version
+      description: The tag or commit, e.g. `v0.5.5`.
+    validations:
+      required: true
+  - type: input
+    id: target
+    attributes:
+      label: Fixture or script
+      placeholder: fixtures/src/hierarchy, scripts/verify.sh
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What is wrong
+      description: For a fixture, name the frame and field and the clause it violates. For a script, what you expected and what happened.
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: The relevant output, e.g. of `scripts/verify.sh`.
+      render: shell
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: macOS version, and `python3 --version` if relevant.
