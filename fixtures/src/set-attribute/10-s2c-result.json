@@ -17,7 +17,16 @@
             },
             "editable": true,
             "accepts_nil": false,
-            "value_kind": "DoubleValue"
+            "value_kind": "DoubleValue",
+            "section": "General",
+            "limits": [
+              {
+                "minimum": 0.0,
+                "has_minimum": true,
+                "maximum": 1.0,
+                "has_maximum": true
+              }
+            ]
           },
           {
             "id": "layer.cornerRadius",
@@ -28,14 +37,22 @@
             },
             "editable": true,
             "accepts_nil": false,
-            "value_kind": "DoubleValue"
+            "value_kind": "DoubleValue",
+            "section": "General",
+            "limits": [
+              {
+                "minimum": 0.0,
+                "has_minimum": true
+              }
+            ]
           },
           {
             "id": "layer.backgroundColor",
             "title": "Background Color",
             "editable": true,
             "accepts_nil": true,
-            "value_kind": "ColorValue"
+            "value_kind": "ColorValue",
+            "section": "General"
           }
         ]
       },
@@ -52,14 +69,24 @@
             },
             "editable": true,
             "accepts_nil": false,
-            "value_kind": "DoubleValue"
+            "value_kind": "DoubleValue",
+            "section": "General",
+            "limits": [
+              {
+                "minimum": 0.0,
+                "has_minimum": true,
+                "maximum": 1.0,
+                "has_maximum": true
+              }
+            ]
           },
           {
             "id": "view.tintColor",
             "title": "Tint Color",
             "editable": true,
             "accepts_nil": true,
-            "value_kind": "ColorValue"
+            "value_kind": "ColorValue",
+            "section": "General"
           }
         ]
       }

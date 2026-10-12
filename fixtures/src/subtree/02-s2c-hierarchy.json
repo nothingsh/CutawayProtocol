@@ -56,7 +56,9 @@
             "owner_display_class_name": "HomeViewController",
             "name": "cardView"
           }
-        ]
+        ],
+        "layer_address": 105553178443968,
+        "view_address": 4353716224
       },
       {
         "id": 5,
@@ -114,7 +116,8 @@
             "owner_display_class_name": "HomeViewController",
             "name": "cardBadge"
           }
-        ]
+        ],
+        "layer_address": 105553178444032
       }
     ],
     "key_window_id": 1

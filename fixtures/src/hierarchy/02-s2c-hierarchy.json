@@ -49,7 +49,9 @@
         "z_position": 0.0,
         "hidden": false,
         "opacity": 1.0,
-        "masks_to_bounds": false
+        "masks_to_bounds": false,
+        "layer_address": 105553178443776,
+        "view_address": 4353714688
       },
       {
         "id": 2,
@@ -99,7 +101,10 @@
         "opacity": 1.0,
         "masks_to_bounds": false,
         "view_controller_class_name": "Demo.HomeViewController",
-        "view_controller_display_class_name": "HomeViewController"
+        "view_controller_display_class_name": "HomeViewController",
+        "layer_address": 105553178443840,
+        "view_address": 4353715200,
+        "view_controller_address": 4345330176
       },
       {
         "id": 3,
@@ -154,7 +159,9 @@
             "owner_display_class_name": "HomeViewController",
             "name": "titleLabel"
           }
-        ]
+        ],
+        "layer_address": 105553178443904,
+        "view_address": 4353715712
       },
       {
         "id": 4,
@@ -209,7 +216,9 @@
             "owner_display_class_name": "HomeViewController",
             "name": "cardView"
           }
-        ]
+        ],
+        "layer_address": 105553178443968,
+        "view_address": 4353716224
       },
       {
         "id": 5,
@@ -267,7 +276,8 @@
             "owner_display_class_name": "HomeViewController",
             "name": "cardBadge"
           }
-        ]
+        ],
+        "layer_address": 105553178444032
       },
       {
         "id": 6,
@@ -322,7 +332,9 @@
             "owner_display_class_name": "HomeViewController",
             "name": "scrollView"
           }
-        ]
+        ],
+        "layer_address": 105553178444096,
+        "view_address": 4353717248
       },
       {
         "id": 7,
@@ -370,7 +382,9 @@
         "z_position": 0.0,
         "hidden": false,
         "opacity": 1.0,
-        "masks_to_bounds": false
+        "masks_to_bounds": false,
+        "layer_address": 105553178444160,
+        "view_address": 4353717760
       },
       {
         "id": 8,
@@ -423,7 +437,8 @@
             "owner_display_class_name": "DMBaseViewController",
             "name": "_dividerLayer"
           }
-        ]
+        ],
+        "layer_address": 105553178444224
       },
       {
         "id": 9,
@@ -471,7 +486,9 @@
         "z_position": 0.0,
         "hidden": false,
         "opacity": 1.0,
-        "masks_to_bounds": false
+        "masks_to_bounds": false,
+        "layer_address": 105553178444288,
+        "view_address": 4353718784
       }
     ],
     "key_window_id": 1

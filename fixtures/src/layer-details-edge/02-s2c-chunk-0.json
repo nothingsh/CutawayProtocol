@@ -482,7 +482,8 @@
                 },
                 "editable": false,
                 "accepts_nil": false,
-                "value_kind": "RectValue"
+                "value_kind": "RectValue",
+                "section": "Layout"
               },
               {
                 "id": "layer.hidden",
@@ -493,7 +494,8 @@
                 },
                 "editable": true,
                 "accepts_nil": false,
-                "value_kind": "BoolValue"
+                "value_kind": "BoolValue",
+                "section": "General"
               }
             ]
           }

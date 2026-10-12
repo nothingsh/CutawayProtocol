@@ -3,14 +3,15 @@
 
 Usage: check-fixtures.py <fixtures/src>
 
-The hierarchy's order and its view controller and member reference fields
-(P-HIER-01, 03, 07 to 09). Per scenario: request ids, stream sequencing and chunk counts (P-REQ-01, 03),
+The hierarchy's order, its view controller and member reference fields and its
+addresses (P-HIER-01, 03, 07 to 09, 14). Per scenario: request ids, stream sequencing and chunk counts (P-REQ-01, 03),
 one detail per requested layer (P-DET-01), what each detail contains against
 what was asked (P-DET-02 to 04), and every image's size and data (P-DET-07,
-P-IMG-01, 02). Every attribute's editing fields (P-ATTR-06, 07). Each plain
+P-IMG-01, 02). Every attribute's editing fields, section and limits (P-ATTR-06
+to 10). Each plain
 request gets one response with its request id (P-REQ-02); a subtree is the
 hierarchy's subtree under the asked root (P-HIER-10, 11); and the answer to
-each SetAttribute is the one P-SET-01 to 03 call for, judged by the
+each SetAttribute is the one P-SET-01 to 03 and 07 call for, judged by the
 attributes the fixtures give for that layer. Constraints come only when asked
 for and only for a layer that backs a view; each involves its layer, its items
 are well formed, and one id means the same constraint everywhere (P-LAYOUT-01
@@ -62,7 +63,7 @@ PLAIN_RESPONSES = {
 
 def check_nodes(where, listed, first_parent=None):
     """Checks a pre-order node list. The first node's parent may lie outside the list when first_parent is set."""
-    seen = set()
+    seen, addresses = set(), {}
     for index, node in enumerate(listed):
         parent = node.get("parent_id", 0)
         if node.get("id", 0) == 0:
@@ -78,6 +79,16 @@ def check_nodes(where, listed, first_parent=None):
             problem(spot, "view controller names must be given together (P-HIER-07)")
         if any(controller) and "view_class_name" not in node:
             problem(spot, "only a layer that backs a view can back a view controller's root view (P-HIER-07)")
+        if node.get("layer_address", 0) == 0:
+            problem(spot, "layer_address must be given (P-HIER-14)")
+        if ("view_address" in node) != ("view_class_name" in node):
+            problem(spot, "view_address is given exactly when view_class_name is (P-HIER-14)")
+        if ("view_controller_address" in node) != ("view_controller_class_name" in node):
+            problem(spot, "view_controller_address is given exactly when view_controller_class_name is (P-HIER-14)")
+        own = [node[key] for key in ("layer_address", "view_address", "view_controller_address") if node.get(key)]
+        for value in own:
+            if addresses.setdefault(value, node.get("id", 0)) != node.get("id", 0) or own.count(value) > 1:
+                problem(spot, "address %#x belongs to another object in the same capture (P-HIER-14)" % value)
         references = node.get("member_references", [])
         if references and parent == 0:
             problem(spot, "a root layer has no ancestors to hold it (P-HIER-08)")
@@ -85,6 +96,77 @@ def check_nodes(where, listed, first_parent=None):
             if not all(reference.get(key) for key in ("owner_class_name", "owner_display_class_name", "name")):
                 problem(spot, "a member reference needs both class names and a name (P-HIER-09)")
         seen.add(node.get("id", 0))
+
+
+# The components of each numeric member, in the order of P-ATTR-09.
+COMPONENTS = {
+    "IntValue": lambda v: [v],
+    "DoubleValue": lambda v: [v],
+    "PointValue": lambda v: [v.get("x", 0), v.get("y", 0)],
+    "SizeValue": lambda v: [v.get("width", 0), v.get("height", 0)],
+    "RectValue": lambda v: COMPONENTS["PointValue"](v.get("origin", {})) + COMPONENTS["SizeValue"](v.get("size", {})),
+    "InsetsValue": lambda v: [v.get(key, 0) for key in ("top", "left", "bottom", "right")],
+    "TransformValue": lambda v: [v.get("m%d%d" % (row, column), 0) for row in range(1, 5) for column in range(1, 5)],
+}
+SECTIONS = ("Unspecified", "Identity", "General", "Layout")
+
+
+def components(kind, value):
+    """The numbers of a value of a numeric member, in order; None for other members."""
+    if kind not in COMPONENTS:
+        return None
+    return [float(number) for number in COMPONENTS[kind](value.get("value", 0 if kind in ("IntValue", "DoubleValue") else {}))]
+
+
+def outside(entry, number):
+    """Why a number lies outside one NumberLimit, or None (P-ATTR-10)."""
+    if entry.get("has_minimum", False):
+        low = entry.get("minimum", 0)
+        if number < low or (entry.get("minimum_exclusive", False) and number == low):
+            return "below %g" % low
+    if entry.get("has_maximum", False):
+        high = entry.get("maximum", 0)
+        if number > high or (entry.get("maximum_exclusive", False) and number == high):
+            return "above %g" % high
+    return None
+
+
+def limit_violation(attribute, kind, value):
+    """Why a value breaks the attribute's limits, or None (P-ATTR-09, P-SET-07)."""
+    numbers, limits = components(kind, value), attribute.get("limits", [])
+    if numbers is None or not limits or len(limits) not in (1, len(numbers)):
+        return None
+    for index, number in enumerate(numbers):
+        reason = outside(limits[0 if len(limits) == 1 else index], number)
+        if reason:
+            return "component %d is %s" % (index, reason)
+    return None
+
+
+def check_limits(spot, attribute):
+    limits, kind = attribute.get("limits", []), attribute.get("value_kind", "None")
+    if not limits:
+        return
+    if kind not in COMPONENTS or not attribute.get("editable", False):
+        problem(spot, "only an editable numeric attribute has limits (P-ATTR-09)")
+        return
+    count = len(components(kind, {}))
+    if len(limits) not in (1, count):
+        problem(spot, "%d limits for %d components (P-ATTR-09)" % (len(limits), count))
+    for entry in limits:
+        for side in ("minimum", "maximum"):
+            if entry.get("has_" + side, False):
+                bound = entry.get(side, 0)
+                if bound != bound or bound in (float("inf"), float("-inf")):
+                    problem(spot, "a bound must be finite (P-ATTR-10)")
+                if kind == "IntValue" and bound != int(bound):
+                    problem(spot, "an IntValue bound must be an integer (P-ATTR-10)")
+            elif side in entry or entry.get(side + "_exclusive", False):
+                problem(spot, "an absent %s leaves its other fields at their defaults (P-ATTR-10)" % side)
+        if entry.get("has_minimum", False) and entry.get("has_maximum", False):
+            low, high = entry.get("minimum", 0), entry.get("maximum", 0)
+            if low > high or (low == high and (entry.get("minimum_exclusive", False) or entry.get("maximum_exclusive", False))):
+                problem(spot, "no value lies between the bounds (P-ATTR-10)")
 
 
 def check_attributes(where, groups):
@@ -96,6 +178,9 @@ def check_attributes(where, groups):
                 problem(spot, "value_kind must be given, also when the value is nil (P-ATTR-06)")
             elif "value_type" in attribute and attribute["value_type"] != kind:
                 problem(spot, "value_kind %s does not match the value's %s (P-ATTR-06)" % (kind, attribute["value_type"]))
+            if attribute.get("section", "Unspecified") not in SECTIONS:
+                problem(spot, "unknown section %s (P-ATTR-08)" % attribute.get("section"))
+            check_limits(spot, attribute)
             if attribute.get("value_type") == "EnumValue":
                 value = attribute.get("value", {})
                 cases, values = value.get("cases", []), value.get("case_values", [])
@@ -181,6 +266,8 @@ def expected_set_error(body, nodes, attributes):
         return "InvalidAttributeValue"
     if kind == "EnumValue" and body.get("value", {}).get("value", 0) not in known.get("value", {}).get("case_values", []):
         return "InvalidAttributeValue"
+    if limit_violation(known, kind, body.get("value", {})):
+        return "InvalidAttributeValue"
     return None
 
 
@@ -211,9 +298,9 @@ def main():
             for attribute in group.get("attributes", []):
                 key = (layer, attribute.get("id"))
                 attributes.setdefault(key, attribute)
-                marks = tuple(attribute.get(field) for field in ("editable", "accepts_nil", "value_kind"))
+                marks = json.dumps([attribute.get(field) for field in ("editable", "accepts_nil", "value_kind", "section", "limits")])
                 if flags.setdefault(key, marks) != marks:
-                    problem(where, "layer %s attribute %s changes its editing fields between fixtures" % key)
+                    problem(where, "layer %s attribute %s changes its editing fields, section or limits between fixtures" % key)
 
     for scenario, frames in sorted(scenarios.items()):
         last_id, requests, streams, plain = 0, {}, {}, {}
@@ -267,7 +354,7 @@ def main():
                 if asked in ("GetSubtree", "SetAttribute"):
                     got = body.get("code", "Unknown") if kind == "Error" else None
                     if got != wanted:
-                        problem(where, "answered with %s, the protocol calls for %s (P-HIER-11, P-SET-03)"
+                        problem(where, "answered with %s, the protocol calls for %s (P-HIER-11, P-SET-03, 07)"
                                 % (got or kind, wanted or PLAIN_RESPONSES[asked]))
             elif kind in ("Hello", "AppStateChanged"):
                 if request_id != 0:
