@@ -7,6 +7,9 @@ the `P-EVO` clauses of `PROTOCOL.md`.
 ## Branches
 
 - `main` is the only long-lived branch. Releases are tags `vMAJOR.MINOR.PATCH` on `main`.
+- While a minor version is in development, each change merged for it is tagged
+  `vMAJOR.MINOR.0-dev.N`. Until `vMAJOR.MINOR.0` is tagged, what that version adds may still change;
+  only the append-only rule against the last release holds. Released peers pin final tags only.
 - Open pull requests against `main`.
 
 ## Issues and planning
