@@ -203,7 +203,41 @@
                 },
                 "editable": false,
                 "accepts_nil": false,
-                "value_kind": "RectValue"
+                "value_kind": "RectValue",
+                "section": "Layout"
+              },
+              {
+                "id": "layer.bounds",
+                "title": "Bounds",
+                "value_type": "RectValue",
+                "value": {
+                  "value": {
+                    "origin": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "size": {
+                      "width": 200,
+                      "height": 24
+                    }
+                  }
+                },
+                "editable": true,
+                "accepts_nil": false,
+                "value_kind": "RectValue",
+                "section": "Layout",
+                "limits": [
+                  {},
+                  {},
+                  {
+                    "minimum": 0.0,
+                    "has_minimum": true
+                  },
+                  {
+                    "minimum": 0.0,
+                    "has_minimum": true
+                  }
+                ]
               },
               {
                 "id": "layer.position",
@@ -217,7 +251,8 @@
                 },
                 "editable": true,
                 "accepts_nil": false,
-                "value_kind": "PointValue"
+                "value_kind": "PointValue",
+                "section": "Layout"
               },
               {
                 "id": "layer.shadowOffset",
@@ -231,7 +266,8 @@
                 },
                 "editable": true,
                 "accepts_nil": false,
-                "value_kind": "SizeValue"
+                "value_kind": "SizeValue",
+                "section": "General"
               },
               {
                 "id": "layer.opacity",
@@ -242,7 +278,16 @@
                 },
                 "editable": true,
                 "accepts_nil": false,
-                "value_kind": "DoubleValue"
+                "value_kind": "DoubleValue",
+                "section": "General",
+                "limits": [
+                  {
+                    "minimum": 0.0,
+                    "has_minimum": true,
+                    "maximum": 1.0,
+                    "has_maximum": true
+                  }
+                ]
               },
               {
                 "id": "layer.hidden",
@@ -253,14 +298,16 @@
                 },
                 "editable": true,
                 "accepts_nil": false,
-                "value_kind": "BoolValue"
+                "value_kind": "BoolValue",
+                "section": "General"
               },
               {
                 "id": "layer.backgroundColor",
                 "title": "Background Color",
                 "editable": true,
                 "accepts_nil": true,
-                "value_kind": "ColorValue"
+                "value_kind": "ColorValue",
+                "section": "General"
               },
               {
                 "id": "layer.borderColor",
@@ -276,7 +323,8 @@
                 },
                 "editable": true,
                 "accepts_nil": true,
-                "value_kind": "ColorValue"
+                "value_kind": "ColorValue",
+                "section": "General"
               },
               {
                 "id": "layer.transform",
@@ -304,7 +352,8 @@
                 },
                 "editable": true,
                 "accepts_nil": false,
-                "value_kind": "TransformValue"
+                "value_kind": "TransformValue",
+                "section": "Layout"
               }
             ]
           },
@@ -321,7 +370,27 @@
                 },
                 "editable": true,
                 "accepts_nil": true,
-                "value_kind": "StringValue"
+                "value_kind": "StringValue",
+                "section": "General"
+              },
+              {
+                "id": "label.fontSize",
+                "title": "Font Size",
+                "value_type": "DoubleValue",
+                "value": {
+                  "value": 17.0
+                },
+                "editable": true,
+                "accepts_nil": false,
+                "value_kind": "DoubleValue",
+                "section": "General",
+                "limits": [
+                  {
+                    "minimum": 0.0,
+                    "has_minimum": true,
+                    "minimum_exclusive": true
+                  }
+                ]
               },
               {
                 "id": "label.numberOfLines",
@@ -332,7 +401,14 @@
                 },
                 "editable": true,
                 "accepts_nil": false,
-                "value_kind": "IntValue"
+                "value_kind": "IntValue",
+                "section": "General",
+                "limits": [
+                  {
+                    "minimum": 0.0,
+                    "has_minimum": true
+                  }
+                ]
               },
               {
                 "id": "label.textAlignment",
@@ -358,7 +434,8 @@
                 },
                 "editable": true,
                 "accepts_nil": false,
-                "value_kind": "EnumValue"
+                "value_kind": "EnumValue",
+                "section": "General"
               }
             ]
           },
@@ -366,6 +443,18 @@
             "id": "view",
             "title": "View",
             "attributes": [
+              {
+                "id": "view.tag",
+                "title": "Tag",
+                "value_type": "IntValue",
+                "value": {
+                  "value": 0
+                },
+                "editable": true,
+                "accepts_nil": false,
+                "value_kind": "IntValue",
+                "section": "Identity"
+              },
               {
                 "id": "view.layoutMargins",
                 "title": "Layout Margins",
@@ -380,7 +469,8 @@
                 },
                 "editable": true,
                 "accepts_nil": false,
-                "value_kind": "InsetsValue"
+                "value_kind": "InsetsValue",
+                "section": "Layout"
               }
             ]
           }

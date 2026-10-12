@@ -2,7 +2,7 @@
 
 The Cutaway protocol is the contract between CutawayServer (an SDK embedded in an iOS app) and Cutaway (a macOS app). The Server listens on a local port; once the Client connects, it retrieves the app's layer hierarchy, images, attributes and Auto Layout constraints by request and response, and can modify attributes. This document is normative: both implementations follow this document and `schema/cutaway.fbs`.
 
-Protocol version: 1.0
+Protocol version: 1.1
 
 Numbered paragraphs are normative clauses. "Must" and "must not" state requirements; "may" states what is allowed but not required. Everything else is explanation.
 
@@ -137,13 +137,19 @@ P-REQ-09 spares the Server from buffering requests without limit for a Client th
 
 Only root views are marked with their view controller, rather than every layer carrying the controller it belongs to: the former is a precise fact, and the Client derives the latter by walking up the parents to the first node with `view_controller_class_name`. The class that declares a variable may be a superclass of the holder, so `owner_class_name` is not necessarily equal to any ancestor's `view_class_name` or `view_controller_class_name`.
 
-**P-HIER-10** The response to `GetSubtree` is `Hierarchy`. The first node in `nodes` is the layer given by `root_id`, followed by all its descendants, with the order and the field rules of P-HIER-01 and 03 to 09; the first node's `parent_id` is its actual parent layer, or 0 when it is the root layer of a window. `key_window_id` is the same as in the response to `GetHierarchy`.
+**P-HIER-10** The response to `GetSubtree` is `Hierarchy`. The first node in `nodes` is the layer given by `root_id`, followed by all its descendants, with the order and the field rules of P-HIER-01, 03 to 09, 14 and 15; the first node's `parent_id` is its actual parent layer, or 0 when it is the root layer of a window. `key_window_id` is the same as in the response to `GetHierarchy`.
 
 **P-HIER-11** When the layer given by `root_id` does not exist (P-HIER-12), the Server must reply with `Error` (code `LayerNotFound`).
 
 **P-HIER-12** In this document, a layer that "does not exist" is one that has been released, or is no longer in any window. P-HIER-11, P-DET-02 and P-SET-03 all use this meaning. (Since 0.4; before, only P-HIER-11 stated this meaning.)
 
 **P-HIER-13** A layer used as a `mask` is not a hierarchy node, and neither are its sublayers; its effect shows in the image of the masked layer. (Stated explicitly since 0.5.2; Servers already did so.)
+
+**P-HIER-14** `layer_address` is the address of the layer object in the app's process at the time the hierarchy was captured, and must be given. `view_address` is the address of the view the layer backs, given exactly when `view_class_name` is (P-HIER-04); `view_controller_address` is the address of the view controller, given exactly when `view_controller_class_name` is (P-HIER-07). 0 means absent. The Server takes the addresses of the objects it already reads for the node, and must not retain or load anything to get them. (Since 1.1.)
+
+**P-HIER-15** Addresses are for display only. Once an object is released its address may belong to another object, so an address is not an identity: the layer ID (P-HIER-03) remains the only one, and the Client must not use an address to identify a layer or to match nodes between captures. (Since 1.1.)
+
+Addresses let the person debugging match a node with what the debugger and the app's logs print (for example `po 0x…` in LLDB); the layer ID means nothing outside Cutaway. A 1.0 Server does not send them, and the Client reads 0, that is, absent. An address also reveals where the app's heap lies; the Server listens on loopback only (P-TRANS-01), so it is visible only to the Client on the same machine or connected over USB.
 
 `GetSubtree` refreshes part of the hierarchy: the Client replaces the subtree rooted at this layer in its model with the response. IDs do not change within a connection (P-HIER-03), so a layer that has not changed is still the same node; a new layer has a new ID, and a layer that no longer appears has been removed. The position of the subtree's root among its siblings is not in the response; when its `z_position` changes, the Client has to refresh its parent's subtree to get the new order.
 
@@ -193,9 +199,19 @@ What P-DET-07 means: the Client pins the image to the four corners of the layer'
 
 **P-ATTR-07** The `case_values` of an `EnumValue` has the same length as `cases` and matches it one to one: it holds the raw value of each case.
 
+**P-ATTR-08** `section` names the part of an inspector an attribute belongs on: `Identity` for what identifies the object (for example `view.tag`), `Layout` for its geometry and Auto Layout, `General` for everything else. It is a hint: the Client must still display every attribute (P-ATTR-03), and must display `Unspecified` and values it does not know as `General`. The Server must not send a section that the negotiated minor version does not have (P-HELLO-04); it sends `Unspecified` instead. (Since 1.1.)
+
+**P-ATTR-09** `limits` states the values `SetAttribute` accepts for an attribute, one numeric component at a time. It is given only for an attribute whose `editable` is true and whose `value_kind` is `IntValue`, `DoubleValue`, `PointValue`, `SizeValue`, `RectValue`, `InsetsValue` or `TransformValue`; for any other attribute it is absent or empty, and the Client ignores it. It follows `value_kind`, and holds also when `value` is absent. Absent or empty means the Server states no limits. One entry applies to every component of the value. Otherwise there is exactly one entry per component, in the order of the fields: `PointValue` x, y; `SizeValue` width, height; `RectValue` origin x, origin y, width, height; `InsetsValue` top, left, bottom, right; `TransformValue` m11 to m44. The Client must treat `limits` with any other number of entries as absent. (Since 1.1.)
+
+**P-ATTR-10** In a `NumberLimit`, when `has_minimum` is true a component must be at least `minimum`, or greater than it when `minimum_exclusive` is true; when `has_maximum` is true it must be at most `maximum`, or less than it when `maximum_exclusive` is true. A side whose `has_` field is false is unbounded, and its other two fields are left at their defaults; an entry with neither bound leaves that component free. Bounds are finite numbers; when both are given, `minimum` is at most `maximum`, and some value lies between them. For `IntValue` the bounds are integers, and the value is compared as a double. (Since 1.1.)
+
 Attributes are self-describing: the Server decides which groups and attributes to give and which of them may be modified, and the Client displays what it receives. An `EnumValue` gives the current value, the names of all cases, the name of the current case and the raw value of each case.
 
 A 0.2 Server does not send the three fields of P-ATTR-06; the Client reads false and `None`, that is, everything is read-only, with no need to check the version separately. `AttributeValueKind` has the same numbering as the type field of `AttributeValue`; FlatBuffers does not allow a union's type to be used as the type of another field, so it is defined separately, and the two are appended together from now on.
+
+A 1.0 Server does not send `section` or `limits`; the Client reads `Unspecified` and no limits, and shows every attribute as `General`. `General` is the section that holds what is neither identity nor layout, appearance and behavior alike; a later version may append narrower sections, and an attribute that does not fit one of them stays in `General`.
+
+Limits cover numbers only. `BoolValue`, `StringValue` and `EnumValue` have none (an `EnumValue` is limited by its `case_values`), and neither has `ColorValue`: its components are always 0 to 1 (P-ATTR-04).
 
 ## Modifying attributes
 
@@ -205,11 +221,15 @@ A 0.2 Server does not send the three fields of P-ATTR-06; the Client reads false
 
 **P-SET-03** When a request is invalid, the Server must reply with `Error`, and must not change any state of the app. The error code is the first of the following that applies: `LayerNotFound` when the layer does not exist; `AttributeNotEditable` when this layer's attribute groups have no attribute with this ID, or its `editable` is false; `InvalidAttributeValue` when the request violates P-SET-02, contains a non-finite number, or is rejected by the Server's other checks.
 
-**P-SET-04** The Server may adjust the value it writes (for example clamping opacity to 0 to 1), and the app itself may also change it afterwards. The Client must display the value in `SetAttributeResult`, and must not assume that the value written took effect as is.
+**P-SET-04** The Server may adjust the value it writes (for example clamping a color's components into 0 to 1, P-ATTR-04), and the app itself may also change it afterwards. The Client must display the value in `SetAttributeResult`, and must not assume that the value written took effect as is.
 
 **P-SET-05** The Server modifies on the main thread, must not produce implicit animations, and has the window containing the layer finish layout before replying. A later `GetSubtree`, `GetHierarchy` or `GetLayerDetails` reads the state after the modification and the layout it caused.
 
 **P-SET-06** A modification affects only the app's current runtime state. The Server neither records nor reverts modifications; they remain after the connection closes.
+
+**P-SET-07** The Client must not send a value with a component outside the limits (P-ATTR-09, 10) of that attribute in the attribute groups it last received for the layer. The Server must reject a value with a component outside the limits the attribute has as it reads now, with `InvalidAttributeValue` (P-SET-03). Limits are necessary, not sufficient: a value within them may still be rejected by the Server's other checks, or adjusted (P-SET-04); and absent limits do not mean that every value is accepted. (Since 1.1.)
+
+Limits are what the Server accepts, not what the attribute can hold: the app may have set a value outside them itself (for example a negative width in `layer.bounds`). Such a value is displayed as it is, and a modification that keeps it is rejected like any other value outside the limits; the Client should tell the person which component is out of range rather than send it. Undoing to an old value that lies outside the limits the attribute has now is not sent either. A Server that used to clamp a number into a range rejects the values outside it once it states that range as limits; a 1.0 Client receives no limits and learns of this only from the `InvalidAttributeValue`.
 
 `SetAttributeResult` carries the attributes of the whole layer, because changing one attribute often changes others with it (`view.alpha` and `layer.opacity`; `layer.frame` and `layer.bounds`, `layer.position`). It carries no `LayerNode`: the layout a modification causes may move many layers, and geometry is always fetched with `GetSubtree`.
 
@@ -265,7 +285,7 @@ The distance between two layers is computed by the Client after converting both 
 | `Internal` | An internal Server error |
 | `LayerNotFound` | The layer the request names does not exist (0.3, P-HIER-11, P-SET-03) |
 | `AttributeNotEditable` | The attribute does not exist or cannot be modified (0.3, P-SET-03) |
-| `InvalidAttributeValue` | The value to write is invalid (0.3, P-SET-03) |
+| `InvalidAttributeValue` | The value to write is invalid (0.3, P-SET-03), or outside the attribute's limits (1.1, P-SET-07) |
 
 The `message` of `Error` is an English explanation for people to read; the Client must not make decisions based on its content.
 

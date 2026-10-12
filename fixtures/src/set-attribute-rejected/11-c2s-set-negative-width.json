@@ -1,0 +1,21 @@
+{
+  "request_id": 6,
+  "body_type": "SetAttribute",
+  "body": {
+    "layer_id": 3,
+    "attribute_id": "layer.bounds",
+    "value_type": "RectValue",
+    "value": {
+      "value": {
+        "origin": {
+          "x": -20,
+          "y": 0
+        },
+        "size": {
+          "width": -20,
+          "height": 24
+        }
+      }
+    }
+  }
+}

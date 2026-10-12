@@ -134,6 +134,11 @@ table LayerNode {
   view_controller_class_name: string;  // set when the layer backs a view controller's root view
   view_controller_display_class_name: string;
   member_references: [MemberReference]; // nearest holder first
+  // 1.1: addresses in the app's process when the hierarchy was captured; 0 when absent.
+  // For display only: an address can be reused once its object is released (P-HIER-15).
+  layer_address: ulong;
+  view_address: ulong;              // set when the layer backs a view
+  view_controller_address: ulong;   // set when view_controller_class_name is
 }
 
 table GetHierarchy {}
@@ -193,6 +198,19 @@ enum AttributeValueKind : ubyte {
   EnumValue = 11
 }
 
+// 1.1: which part of an inspector an attribute belongs on (P-ATTR-08).
+enum AttributeSection : ubyte { Unspecified = 0, Identity = 1, General = 2, Layout = 3 }
+
+// 1.1: the values SetAttribute accepts for one numeric component (P-ATTR-10).
+table NumberLimit {
+  minimum: double;
+  has_minimum: bool;
+  minimum_exclusive: bool;       // the component must be greater than minimum
+  maximum: double;
+  has_maximum: bool;
+  maximum_exclusive: bool;       // the component must be less than maximum
+}
+
 table Attribute {
   id: string;                    // stable, e.g. "layer.cornerRadius"
   title: string;
@@ -201,6 +219,9 @@ table Attribute {
   editable: bool;                // SetAttribute may change it
   accepts_nil: bool;             // SetAttribute may set it to nil
   value_kind: AttributeValueKind; // the member value uses, also when value is absent
+  // 1.1
+  section: AttributeSection;
+  limits: [NumberLimit];         // one for every component, or one per component (P-ATTR-09)
 }
 
 table AttributeGroup {
