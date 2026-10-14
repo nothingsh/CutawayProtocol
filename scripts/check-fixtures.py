@@ -125,7 +125,8 @@ COMPONENTS = {
 SECTIONS = ("Unspecified", "Identity", "General", "Layout", "Content", "Appearance", "Behavior")
 
 # The tables of P-ATTR-11 to 13 and P-HIER-17.
-PAIRS = (("view.isHidden", "layer.hidden"), ("view.alpha", "layer.opacity"), ("view.clipsToBounds", "layer.masksToBounds"))
+PAIRS = (("view.isHidden", "layer.hidden"), ("view.alpha", "layer.opacity"), ("view.clipsToBounds", "layer.masksToBounds"),
+         ("view.backgroundColor", "layer.backgroundColor"))
 CLUSTERS = {
     "visibility": ("hidden", "opacity"),
     "corners": ("radius", "clip"),

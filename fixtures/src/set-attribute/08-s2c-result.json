@@ -28,23 +28,6 @@
             "cluster": "corners",
             "slot": "radius",
             "unit": "Points"
-          },
-          {
-            "id": "layer.backgroundColor",
-            "title": "Background",
-            "value_type": "ColorValue",
-            "value": {
-              "value": {
-                "red": 0.2,
-                "green": 0.4,
-                "blue": 0.8,
-                "alpha": 1.0
-              }
-            },
-            "editable": true,
-            "accepts_nil": true,
-            "value_kind": "ColorValue",
-            "section": "Appearance"
           }
         ],
         "class_name": "CALayer"
@@ -89,6 +72,23 @@
             "section": "Appearance",
             "cluster": "corners",
             "slot": "clip"
+          },
+          {
+            "id": "view.backgroundColor",
+            "title": "Background",
+            "value_type": "ColorValue",
+            "value": {
+              "value": {
+                "red": 0.2,
+                "green": 0.4,
+                "blue": 0.8,
+                "alpha": 1.0
+              }
+            },
+            "editable": true,
+            "accepts_nil": true,
+            "value_kind": "ColorValue",
+            "section": "Appearance"
           },
           {
             "id": "view.tintColor",

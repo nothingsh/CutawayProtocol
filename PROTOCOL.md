@@ -220,13 +220,16 @@ What P-DET-07 means: the Client pins the image to the four corners of the layer'
 
 **P-ATTR-10** In a `NumberLimit`, when `has_minimum` is true a component must be at least `minimum`, or greater than it when `minimum_exclusive` is true; when `has_maximum` is true it must be at most `maximum`, or less than it when `maximum_exclusive` is true. A side whose `has_` field is false is unbounded, and its other two fields are left at their defaults; an entry with neither bound leaves that component free. Bounds are finite numbers; when both are given, `minimum` is at most `maximum`, and some value lies between them. For `IntValue` the bounds are integers, and the value is compared as a double. (Since 1.1.)
 
-**P-ATTR-11** Some properties of a view are stored in the layer that backs it, so a view attribute and a layer attribute can read and write the same state. Of each pair in the table below, one layer's attribute groups must not contain both: when the layer backs a view, the Server gives the view's attribute; otherwise it gives the layer's. The table is part of the protocol and is only appended to. (Since 1.1.)
+**P-ATTR-11** Some properties of a view are stored in the layer that backs it, so a view attribute and a layer attribute can be closely related, and most of the time read and write the same state. Of each pair in the table below, one layer's attribute groups must not contain both: when the layer backs a view, the Server gives the view's attribute; otherwise it gives the layer's. The table is part of the protocol and is only appended to. (Since 1.1.)
 
 | View attribute | Layer attribute |
 |---|---|
 | `view.isHidden` | `layer.hidden` |
 | `view.alpha` | `layer.opacity` |
 | `view.clipsToBounds` | `layer.masksToBounds` |
+| `view.backgroundColor` | `layer.backgroundColor` |
+
+For `view.backgroundColor` the two need not read the same: some views keep their background apart from their layer's (a `UILabel` draws it into its contents and leaves the layer's nil). On most such views the view's attribute is the one that is displayed, which is why it is the one given.
 
 **P-ATTR-12** `cluster` gathers attributes of one layer that the Client may show together as one compound row, and `slot` names the part each plays in it; `slot` is given exactly when `cluster` is. Both are taken from the table below, which is part of the protocol and is only appended to. Among one layer's attributes, the same `slot` of the same `cluster` appears at most once, and all attributes of one cluster have the same `section`. A cluster may span groups. Every slot is optional: a layer may give only some of a cluster's slots, and the Client decides how to show such a cluster (as a compound row, or attribute by attribute). The Client shows the attributes of a cluster it does not know attribute by attribute. Either way every attribute is displayed (P-ATTR-03). (Since 1.1.)
 

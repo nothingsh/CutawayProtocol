@@ -55,7 +55,7 @@ scripts/build-fixtures.sh fixtures/bin
 | `app-not-active` | Requesting the hierarchy after the app goes to the background | P-APP-01; P-REQ-05 |
 | `layer-details-failed` | The app leaves the active state while a details stream is in progress | P-APP-01; P-EVT-02; P-REQ-05 |
 | `set-attribute` | Changing text, an enum, a color (from nil to a color and back to nil) and `view.alpha`, each reply holding the whole layer's attributes; layer 4's `corners` cluster spans two groups | P-REQ-02; P-ATTR-06, 07, 11, 12; P-SET-01, 02 |
-| `set-attribute-rejected` | A layer that does not exist, a read-only attribute, the wrong member, nil for an attribute that does not accept nil, two values outside the limits, the layer attribute of a pair on a layer that backs a view | P-SET-03, 07; P-ATTR-11; P-REQ-05 |
+| `set-attribute-rejected` | A layer that does not exist, a read-only attribute, the wrong member, nil for an attribute that does not accept nil, two values outside the limits, the layer attributes of two pairs on a layer that backs a view | P-SET-03, 07; P-ATTR-11; P-REQ-05 |
 | `subtree` | Getting the subtree of node 4, with its addresses, origins and base classes; getting a layer that does not exist | P-HIER-10, 11, 14, 16, 17 |
 | `layout-constraints` | Five layers, constraints only: constraints to views and to the safe area, without a second item, an optional constraint that does not hold, the same constraint in two places, constraints UIKit generates (using `MinY` and `MaxX`, with the superview as first item), a layer that does not back a view, a layer that does not exist; each constraint's origin and the guide's kind | P-DET-02; P-LAYOUT-01 to 07, 09 |
 
@@ -121,15 +121,15 @@ The images in layer details are all single-colored, with `scale` 1 and a pixel s
 
 ## Attributes of the `layer-details` scenario
 
-Layer 3 (a `UILabel`) has three groups with 19 attributes in all, covering all 11 members of `AttributeValue` and one attribute whose value is nil (`layer.backgroundColor`):
+Layer 3 (a `UILabel`) has three groups with 19 attributes in all, covering all 11 members of `AttributeValue` and one attribute whose value is nil (`view.backgroundColor`):
 
 | Group | `class_name` | Attributes | Value types |
 |---|---|---|---|
-| `layer` | `CALayer` | 9 | `RectValue` (`frame`, `bounds`), `PointValue`, `DoubleValue` (`shadowOpacity`, `borderWidth`), `SizeValue`, nil, `ColorValue`, `TransformValue` |
+| `layer` | `CALayer` | 8 | `RectValue` (`frame`, `bounds`), `PointValue`, `DoubleValue` (`shadowOpacity`, `borderWidth`), `SizeValue`, `ColorValue`, `TransformValue` |
 | `label` | `UILabel` | 4 | `StringValue`, `DoubleValue` (`fontSize`), `IntValue`, `EnumValue` |
-| `view` | `UIView` | 6 | `IntValue` (`tag`), `BoolValue` (`isHidden`, `isUserInteractionEnabled`), `DoubleValue` (`alpha`), `ColorValue` (`tintColor`), `InsetsValue` |
+| `view` | `UIView` | 7 | `IntValue` (`tag`), `BoolValue` (`isHidden`, `isUserInteractionEnabled`), `DoubleValue` (`alpha`), nil (`backgroundColor`), `ColorValue` (`tintColor`), `InsetsValue` |
 
-Layer 3 backs a view, so it has `view.isHidden` and `view.alpha` and not `layer.hidden` and `layer.opacity` (P-ATTR-11).
+Layer 3 backs a view, so it has `view.isHidden`, `view.alpha` and `view.backgroundColor` and not `layer.hidden`, `layer.opacity` and `layer.backgroundColor` (P-ATTR-11).
 
 Layer 4 has both a `solo` and a `group` image, and no attributes were requested. Layer 99 does not exist; its `status` is `LayerNotFound`.
 
@@ -147,9 +147,9 @@ Layer 4 has both a `solo` and a `group` image, and no attributes were requested.
 Every attribute in `layer-details` and `layer-details-edge` carries `editable`, `accepts_nil` and `value_kind`. Which attributes are editable is decided by the Server's list of attributes; the values in the fixtures are only an example:
 
 - `layer.frame` is read-only (it is computed from `bounds`, `position`, `anchorPoint` and `transform`); all others are editable.
-- `layer.backgroundColor`, `layer.borderColor`, `label.text` and `view.tintColor` may be set to nil.
-- Titles follow the convention of 1.1 (Hidden, Opacity, Background, Tint, Lines); the IDs are unchanged.
-- `layer.backgroundColor`, whose value is nil, still carries `value_kind` (`ColorValue`).
+- `view.backgroundColor`, `layer.borderColor`, `label.text` and `view.tintColor` may be set to nil.
+- Titles follow the convention of 1.1 (Hidden, Opacity, Background, Tint, Lines); the IDs are unchanged, except that the background color is `view.backgroundColor` instead of `layer.backgroundColor` (P-ATTR-11).
+- `view.backgroundColor`, whose value is nil, still carries `value_kind` (`ColorValue`).
 - The `case_values` of `label.textAlignment` are 0 to 4, matching `cases` one to one.
 
 ## Sections and limits (1.1)
@@ -190,11 +190,11 @@ On layer 3, `layer.borderWidth` and `layer.shadowOpacity` are 0, so `layer.borde
 |---|---|---|---|---|
 | 1 | 3 | `label.text` | `"Welcome back"` | The text changed; the rest is the same as layer 3's attributes in `layer-details` |
 | 2 | 3 | `label.textAlignment` | An `EnumValue` with only `value` 2 | The case becomes `right` |
-| 3 | 4 | `layer.backgroundColor` | From nil to (0.2, 0.4, 0.8, 1) | |
+| 3 | 4 | `view.backgroundColor` | From nil to (0.2, 0.4, 0.8, 1) | |
 | 4 | 4 | `view.alpha` | 0.5 | |
-| 5 | 4 | `layer.backgroundColor` | No `value`, that is, set to nil | The background color is back to nil; `value_kind` is still `ColorValue` |
+| 5 | 4 | `view.backgroundColor` | No `value`, that is, set to nil | The background color is back to nil; `value_kind` is still `ColorValue` |
 
-Layer 4's attributes appear only in this scenario: the `layer` group has `layer.cornerRadius` and `layer.backgroundColor`, and the `view` group has `view.alpha`, `view.clipsToBounds` and `view.tintColor`, whose value is nil. Layer 4 backs a view, so it has no `layer.opacity` (P-ATTR-11); before 1.1 this scenario showed `layer.opacity` changing with `view.alpha`.
+Layer 4's attributes appear only in this scenario: the `layer` group has `layer.cornerRadius`, and the `view` group has `view.alpha`, `view.clipsToBounds`, `view.backgroundColor` and `view.tintColor`, whose value is nil. Layer 4 backs a view, so it has no `layer.opacity` and no `layer.backgroundColor` (P-ATTR-11); before 1.1 this scenario showed `layer.opacity` changing with `view.alpha`.
 
 ## The `set-attribute-rejected` scenario
 
@@ -207,6 +207,7 @@ Layer 4's attributes appear only in this scenario: the `layer` group has `layer.
 | 5 | 3 | `view.alpha` | 1.5, above its limit of 1 | `InvalidAttributeValue` (P-SET-07) |
 | 6 | 3 | `layer.bounds` | −20, 0, −20, 24: x is free, width is below its limit of 0 | `InvalidAttributeValue` (P-SET-07) |
 | 7 | 3 | `layer.opacity` | 0.5: layer 3 backs a view, so its groups have `view.alpha` instead | `AttributeNotEditable` (P-ATTR-11, P-SET-03) |
+| 8 | 3 | `layer.backgroundColor` | (1, 0.5, 0, 1): layer 3 backs a view, so its groups have `view.backgroundColor` instead | `AttributeNotEditable` (P-ATTR-11, P-SET-03) |
 
 ## The `subtree` scenario
 
