@@ -58,7 +58,9 @@
           }
         ],
         "layer_address": 105553178443968,
-        "view_address": 4353716224
+        "view_address": 4353716224,
+        "layer_class_origin": "System",
+        "view_class_origin": "App"
       },
       {
         "id": 5,
@@ -117,7 +119,9 @@
             "name": "cardBadge"
           }
         ],
-        "layer_address": 105553178444032
+        "layer_address": 105553178444032,
+        "layer_class_origin": "System",
+        "layer_base_class_name": "CAShapeLayer"
       }
     ],
     "key_window_id": 1

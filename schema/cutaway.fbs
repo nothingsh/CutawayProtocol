@@ -108,6 +108,12 @@ table AppIcon {
 
 // ---- Hierarchy ----
 
+// 1.1: where a class, or a constraint, comes from (P-HIER-16, P-LAYOUT-09). Unknown means absent.
+enum Origin : ubyte { Unknown = 0, System = 1, App = 2 }
+
+// 1.1: whether a view controller is shown (P-HIER-18). Unknown means absent.
+enum ViewControllerVisibility : ubyte { Unknown = 0, Shown = 1, NotShown = 2 }
+
 // 0.2: an instance variable that holds the layer, or the view the layer backs.
 table MemberReference {
   owner_class_name: string;          // runtime name of the class that declares the variable
@@ -139,6 +145,15 @@ table LayerNode {
   layer_address: ulong;
   view_address: ulong;              // set when the layer backs a view
   view_controller_address: ulong;   // set when view_controller_class_name is
+  // 1.1: where each class comes from (P-HIER-16); set exactly when its class name is.
+  layer_class_origin: Origin;
+  view_class_origin: Origin;
+  view_controller_class_origin: Origin;
+  // 1.1: the nearest class in the protocol's tables of known classes (P-HIER-17).
+  layer_base_class_name: string;
+  view_base_class_name: string;     // only when the layer backs a view
+  // 1.1: set exactly when view_controller_class_name is (P-HIER-18).
+  view_controller_visibility: ViewControllerVisibility;
 }
 
 table GetHierarchy {}
@@ -171,7 +186,11 @@ table BoolValue { value: bool; }
 table IntValue { value: long; }
 table DoubleValue { value: double; }
 table StringValue { value: string; }
-table ColorValue { value: Color; }
+table ColorValue {
+  value: Color;
+  // 1.1: the name of the UIKit system color this is, when the Server recognizes it (P-ATTR-15).
+  system_name: string;
+}
 table PointValue { value: Point; }
 table SizeValue { value: Size; }
 table RectValue { value: Rect; }
@@ -199,7 +218,13 @@ enum AttributeValueKind : ubyte {
 }
 
 // 1.1: which part of an inspector an attribute belongs on (P-ATTR-08).
-enum AttributeSection : ubyte { Unspecified = 0, Identity = 1, General = 2, Layout = 3 }
+enum AttributeSection : ubyte {
+  Unspecified = 0, Identity = 1, General = 2, Layout = 3,
+  Content = 4, Appearance = 5, Behavior = 6
+}
+
+// 1.1: how to read the numbers of an attribute's value (P-ATTR-14).
+enum AttributeUnit : ubyte { Unspecified = 0, Points = 1, Fraction = 2 }
 
 // 1.1: the values SetAttribute accepts for one numeric component (P-ATTR-10).
 table NumberLimit {
@@ -222,12 +247,18 @@ table Attribute {
   // 1.1
   section: AttributeSection;
   limits: [NumberLimit];         // one for every component, or one per component (P-ATTR-09)
+  cluster: string;               // the compound row this attribute is part of (P-ATTR-12)
+  slot: string;                  // its part in the cluster; set exactly when cluster is
+  inactive_cause: string;        // ID of the attribute that makes this one have no effect now (P-ATTR-13)
+  unit: AttributeUnit;           // (P-ATTR-14)
 }
 
 table AttributeGroup {
   id: string;                    // stable, e.g. "layer"
   title: string;
   attributes: [Attribute];
+  // 1.1: runtime name of the class that declares the group's properties (P-ATTR-16).
+  class_name: string;
 }
 
 table LayerDetail {
@@ -284,6 +315,11 @@ enum LayoutItemKind : ubyte { View = 0, LayoutGuide = 1, Other = 2 }
 
 enum ConstraintStatus : ubyte { Unknown = 0, Satisfied = 1, Unsatisfied = 2 }
 
+// 1.1: which of its owner's guides a layout guide is (P-LAYOUT-04). Unknown means absent.
+enum LayoutGuideKind : ubyte {
+  Unknown = 0, Other = 1, SafeArea = 2, LayoutMargins = 3, ReadableContent = 4, Keyboard = 5
+}
+
 table LayoutItem {
   kind: LayoutItemKind;
   layer_id: ulong;               // View: the view's layer; LayoutGuide: the owning view's layer
@@ -292,6 +328,8 @@ table LayoutItem {
   display_class_name: string;
   identifier: string;            // LayoutGuide only: UILayoutGuide.identifier
   guide_frame: Rect;             // LayoutGuide only: layoutFrame, in the owning view's bounds
+  // 1.1
+  guide_kind: LayoutGuideKind;   // LayoutGuide only
 }
 
 table LayoutConstraint {
@@ -307,6 +345,8 @@ table LayoutConstraint {
   constant: double;
   priority: float;               // 1 to 1000
   status: ConstraintStatus;      // whether the relation holds in the current layout
+  // 1.1
+  origin: Origin;                // whether UIKit created it (P-LAYOUT-09)
 }
 
 // ---- Control ----

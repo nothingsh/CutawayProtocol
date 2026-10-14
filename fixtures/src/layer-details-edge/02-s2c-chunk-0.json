@@ -454,7 +454,53 @@
             120,
             36
           ]
-        }
+        },
+        "attribute_groups": [
+          {
+            "id": "layer",
+            "title": "Layer",
+            "attributes": [
+              {
+                "id": "layer.hidden",
+                "title": "Hidden",
+                "value_type": "BoolValue",
+                "value": {
+                  "value": false
+                },
+                "editable": true,
+                "accepts_nil": false,
+                "value_kind": "BoolValue",
+                "section": "Appearance",
+                "cluster": "visibility",
+                "slot": "hidden"
+              },
+              {
+                "id": "layer.opacity",
+                "title": "Opacity",
+                "value_type": "DoubleValue",
+                "value": {
+                  "value": 1.0
+                },
+                "editable": true,
+                "accepts_nil": false,
+                "value_kind": "DoubleValue",
+                "section": "Appearance",
+                "limits": [
+                  {
+                    "minimum": 0.0,
+                    "has_minimum": true,
+                    "maximum": 1.0,
+                    "has_maximum": true
+                  }
+                ],
+                "cluster": "visibility",
+                "slot": "opacity",
+                "unit": "Fraction"
+              }
+            ],
+            "class_name": "CALayer"
+          }
+        ]
       },
       {
         "layer_id": 9,
@@ -483,10 +529,20 @@
                 "editable": false,
                 "accepts_nil": false,
                 "value_kind": "RectValue",
-                "section": "Layout"
-              },
+                "section": "Layout",
+                "cluster": "geometry",
+                "slot": "frame",
+                "unit": "Points"
+              }
+            ],
+            "class_name": "CALayer"
+          },
+          {
+            "id": "view",
+            "title": "View",
+            "attributes": [
               {
-                "id": "layer.hidden",
+                "id": "view.isHidden",
                 "title": "Hidden",
                 "value_type": "BoolValue",
                 "value": {
@@ -495,9 +551,12 @@
                 "editable": true,
                 "accepts_nil": false,
                 "value_kind": "BoolValue",
-                "section": "General"
+                "section": "Appearance",
+                "cluster": "visibility",
+                "slot": "hidden"
               }
-            ]
+            ],
+            "class_name": "UIView"
           }
         ]
       },

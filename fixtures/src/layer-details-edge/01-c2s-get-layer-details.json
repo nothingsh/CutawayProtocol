@@ -13,7 +13,7 @@
         "layer_id": 8,
         "want_solo": false,
         "want_group": true,
-        "want_attributes": false
+        "want_attributes": true
       },
       {
         "layer_id": 9,
