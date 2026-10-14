@@ -306,14 +306,6 @@
                 "unit": "Points"
               },
               {
-                "id": "layer.backgroundColor",
-                "title": "Background",
-                "editable": true,
-                "accepts_nil": true,
-                "value_kind": "ColorValue",
-                "section": "Appearance"
-              },
-              {
                 "id": "layer.borderWidth",
                 "title": "Border Width",
                 "value_type": "DoubleValue",
@@ -528,6 +520,14 @@
                 "cluster": "visibility",
                 "slot": "opacity",
                 "unit": "Fraction"
+              },
+              {
+                "id": "view.backgroundColor",
+                "title": "Background",
+                "editable": true,
+                "accepts_nil": true,
+                "value_kind": "ColorValue",
+                "section": "Appearance"
               },
               {
                 "id": "view.tintColor",

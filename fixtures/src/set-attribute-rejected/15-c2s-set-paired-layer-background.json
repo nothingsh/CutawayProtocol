@@ -1,0 +1,17 @@
+{
+  "request_id": 8,
+  "body_type": "SetAttribute",
+  "body": {
+    "layer_id": 3,
+    "attribute_id": "layer.backgroundColor",
+    "value_type": "ColorValue",
+    "value": {
+      "value": {
+        "red": 1.0,
+        "green": 0.5,
+        "blue": 0.0,
+        "alpha": 1.0
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "request_id": 8,
+  "body_type": "Error",
+  "body": {
+    "code": "AttributeNotEditable",
+    "message": "layer 3 backs a view; set view.backgroundColor instead of layer.backgroundColor"
+  }
+}
