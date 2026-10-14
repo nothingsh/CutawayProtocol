@@ -3,7 +3,7 @@
   "body_type": "SetAttribute",
   "body": {
     "layer_id": 3,
-    "attribute_id": "layer.opacity",
+    "attribute_id": "view.alpha",
     "value_type": "StringValue",
     "value": {
       "value": "half"

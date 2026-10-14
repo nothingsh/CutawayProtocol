@@ -51,7 +51,10 @@
         "opacity": 1.0,
         "masks_to_bounds": false,
         "layer_address": 105553178443776,
-        "view_address": 4353714688
+        "view_address": 4353714688,
+        "layer_class_origin": "System",
+        "view_class_origin": "System",
+        "view_base_class_name": "UIWindow"
       },
       {
         "id": 2,
@@ -104,7 +107,11 @@
         "view_controller_display_class_name": "HomeViewController",
         "layer_address": 105553178443840,
         "view_address": 4353715200,
-        "view_controller_address": 4345330176
+        "view_controller_address": 4345330176,
+        "layer_class_origin": "System",
+        "view_class_origin": "System",
+        "view_controller_class_origin": "App",
+        "view_controller_visibility": "Shown"
       },
       {
         "id": 3,
@@ -161,7 +168,10 @@
           }
         ],
         "layer_address": 105553178443904,
-        "view_address": 4353715712
+        "view_address": 4353715712,
+        "layer_class_origin": "System",
+        "view_class_origin": "System",
+        "view_base_class_name": "UILabel"
       },
       {
         "id": 4,
@@ -218,7 +228,9 @@
           }
         ],
         "layer_address": 105553178443968,
-        "view_address": 4353716224
+        "view_address": 4353716224,
+        "layer_class_origin": "System",
+        "view_class_origin": "App"
       },
       {
         "id": 5,
@@ -277,7 +289,9 @@
             "name": "cardBadge"
           }
         ],
-        "layer_address": 105553178444032
+        "layer_address": 105553178444032,
+        "layer_class_origin": "System",
+        "layer_base_class_name": "CAShapeLayer"
       },
       {
         "id": 6,
@@ -334,7 +348,10 @@
           }
         ],
         "layer_address": 105553178444096,
-        "view_address": 4353717248
+        "view_address": 4353717248,
+        "layer_class_origin": "System",
+        "view_class_origin": "System",
+        "view_base_class_name": "UIScrollView"
       },
       {
         "id": 7,
@@ -384,7 +401,10 @@
         "opacity": 1.0,
         "masks_to_bounds": false,
         "layer_address": 105553178444160,
-        "view_address": 4353717760
+        "view_address": 4353717760,
+        "layer_class_origin": "System",
+        "view_class_origin": "System",
+        "view_base_class_name": "UILabel"
       },
       {
         "id": 8,
@@ -438,7 +458,8 @@
             "name": "_dividerLayer"
           }
         ],
-        "layer_address": 105553178444224
+        "layer_address": 105553178444224,
+        "layer_class_origin": "System"
       },
       {
         "id": 9,
@@ -488,7 +509,9 @@
         "opacity": 1.0,
         "masks_to_bounds": false,
         "layer_address": 105553178444288,
-        "view_address": 4353718784
+        "view_address": 4353718784,
+        "layer_class_origin": "System",
+        "view_class_origin": "System"
       }
     ],
     "key_window_id": 1

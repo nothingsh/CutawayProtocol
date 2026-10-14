@@ -19,7 +19,8 @@
             "multiplier": 1.0,
             "constant": 0.0,
             "priority": 1000.0,
-            "status": "Satisfied"
+            "status": "Satisfied",
+            "origin": "App"
           },
           {
             "id": 2,
@@ -34,6 +35,7 @@
               "class_name": "UILayoutGuide",
               "display_class_name": "UILayoutGuide",
               "identifier": "UIViewSafeAreaLayoutGuide",
+              "guide_kind": "SafeArea",
               "guide_frame": {
                 "origin": { "x": 0, "y": 59 },
                 "size": { "width": 393, "height": 759 }
@@ -43,7 +45,8 @@
             "multiplier": 1.0,
             "constant": 49.0,
             "priority": 1000.0,
-            "status": "Satisfied"
+            "status": "Satisfied",
+            "origin": "App"
           },
           {
             "id": 3,
@@ -56,7 +59,8 @@
             "multiplier": 1.0,
             "constant": 240.0,
             "priority": 250.0,
-            "status": "Unsatisfied"
+            "status": "Unsatisfied",
+            "origin": "App"
           },
           {
             "id": 4,
@@ -69,7 +73,8 @@
             "multiplier": 1.0,
             "constant": 78.0,
             "priority": 1000.0,
-            "status": "Satisfied"
+            "status": "Satisfied",
+            "origin": "App"
           }
         ]
       },
@@ -88,7 +93,8 @@
             "multiplier": 1.0,
             "constant": 78.0,
             "priority": 1000.0,
-            "status": "Satisfied"
+            "status": "Satisfied",
+            "origin": "App"
           },
           {
             "id": 5,
@@ -100,7 +106,8 @@
             "multiplier": 1.0,
             "constant": 300.0,
             "priority": 1000.0,
-            "status": "Satisfied"
+            "status": "Satisfied",
+            "origin": "App"
           },
           {
             "id": 6,
@@ -112,7 +119,8 @@
             "multiplier": 1.0,
             "constant": 180.0,
             "priority": 1000.0,
-            "status": "Satisfied"
+            "status": "Satisfied",
+            "origin": "App"
           },
           {
             "id": 7,
@@ -125,7 +133,8 @@
             "multiplier": 1.0,
             "constant": 0.0,
             "priority": 1000.0,
-            "status": "Satisfied"
+            "status": "Satisfied",
+            "origin": "App"
           }
         ]
       },
@@ -144,7 +153,8 @@
             "multiplier": 1.0,
             "constant": 93.0,
             "priority": 1000.0,
-            "status": "Satisfied"
+            "status": "Satisfied",
+            "origin": "System"
           },
           {
             "id": 9,
@@ -156,7 +166,8 @@
             "multiplier": 1.0,
             "constant": 0.0,
             "priority": 1000.0,
-            "status": "Satisfied"
+            "status": "Satisfied",
+            "origin": "System"
           },
           {
             "id": 10,
@@ -168,7 +179,8 @@
             "multiplier": 1.0,
             "constant": 700.0,
             "priority": 1000.0,
-            "status": "Satisfied"
+            "status": "Satisfied",
+            "origin": "System"
           },
           {
             "id": 11,
@@ -180,7 +192,8 @@
             "multiplier": 1.0,
             "constant": 0.0,
             "priority": 1000.0,
-            "status": "Satisfied"
+            "status": "Satisfied",
+            "origin": "System"
           }
         ]
       },

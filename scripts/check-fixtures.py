@@ -3,19 +3,21 @@
 
 Usage: check-fixtures.py <fixtures/src>
 
-The hierarchy's order, its view controller and member reference fields and its
-addresses (P-HIER-01, 03, 07 to 09, 14). Per scenario: request ids, stream sequencing and chunk counts (P-REQ-01, 03),
+The hierarchy's order, its view controller and member reference fields, its
+addresses, class origins, known base classes and view controller visibility
+(P-HIER-01, 03, 07 to 09, 14, 16 to 18). Per scenario: request ids, stream sequencing and chunk counts (P-REQ-01, 03),
 one detail per requested layer (P-DET-01), what each detail contains against
 what was asked (P-DET-02 to 04), and every image's size and data (P-DET-07,
-P-IMG-01, 02). Every attribute's editing fields, section and limits (P-ATTR-06
-to 10). Each plain
+P-IMG-01, 02). Every attribute's editing fields, section, limits, unit and
+system color name, and each layer's paired attributes, clusters and inactive
+causes (P-ATTR-06 to 16). Each plain
 request gets one response with its request id (P-REQ-02); a subtree is the
 hierarchy's subtree under the asked root (P-HIER-10, 11); and the answer to
 each SetAttribute is the one P-SET-01 to 03 and 07 call for, judged by the
 attributes the fixtures give for that layer. Constraints come only when asked
 for and only for a layer that backs a view; each involves its layer, its items
 are well formed, and one id means the same constraint everywhere (P-LAYOUT-01
-to 05).
+to 05); every constraint has an origin and every layout guide a kind (P-LAYOUT-04, 09).
 """
 
 import glob
@@ -89,6 +91,18 @@ def check_nodes(where, listed, first_parent=None):
         for value in own:
             if addresses.setdefault(value, node.get("id", 0)) != node.get("id", 0) or own.count(value) > 1:
                 problem(spot, "address %#x belongs to another object in the same capture (P-HIER-14)" % value)
+        for name, origin in (("class_name", "layer_class_origin"), ("view_class_name", "view_class_origin"),
+                             ("view_controller_class_name", "view_controller_class_origin")):
+            if (node.get(origin, "Unknown") != "Unknown") != (name in node):
+                problem(spot, "%s is given exactly when %s is (P-HIER-16)" % (origin, name))
+        if node.get("layer_base_class_name", LAYER_BASES[0]) not in LAYER_BASES:
+            problem(spot, "layer_base_class_name %s is not in the table (P-HIER-17)" % node["layer_base_class_name"])
+        if node.get("view_base_class_name", VIEW_BASES[0]) not in VIEW_BASES:
+            problem(spot, "view_base_class_name %s is not in the table (P-HIER-17)" % node["view_base_class_name"])
+        if "view_base_class_name" in node and "view_class_name" not in node:
+            problem(spot, "only a layer that backs a view has view_base_class_name (P-HIER-17)")
+        if (node.get("view_controller_visibility", "Unknown") != "Unknown") != ("view_controller_class_name" in node):
+            problem(spot, "view_controller_visibility is given exactly when view_controller_class_name is (P-HIER-18)")
         references = node.get("member_references", [])
         if references and parent == 0:
             problem(spot, "a root layer has no ancestors to hold it (P-HIER-08)")
@@ -108,7 +122,37 @@ COMPONENTS = {
     "InsetsValue": lambda v: [v.get(key, 0) for key in ("top", "left", "bottom", "right")],
     "TransformValue": lambda v: [v.get("m%d%d" % (row, column), 0) for row in range(1, 5) for column in range(1, 5)],
 }
-SECTIONS = ("Unspecified", "Identity", "General", "Layout")
+SECTIONS = ("Unspecified", "Identity", "General", "Layout", "Content", "Appearance", "Behavior")
+
+# The tables of P-ATTR-11 to 13 and P-HIER-17.
+PAIRS = (("view.isHidden", "layer.hidden"), ("view.alpha", "layer.opacity"), ("view.clipsToBounds", "layer.masksToBounds"))
+CLUSTERS = {
+    "visibility": ("hidden", "opacity"),
+    "corners": ("radius", "clip"),
+    "border": ("width", "color"),
+    "shadow": ("color", "opacity", "radius", "offset"),
+    "geometry": ("frame", "bounds", "position", "anchor", "zPosition", "transform"),
+    "sizing": ("hugging.horizontal", "hugging.vertical", "compression.horizontal", "compression.vertical",
+               "intrinsic.width", "intrinsic.height"),
+    "autoLayout": ("autoresizing", "ambiguous"),
+    "font": ("name", "size"),
+    "lines": ("count", "lineBreak"),
+    "state": ("enabled", "selected", "highlighted"),
+    "scrolling": ("enabled", "paging"),
+}
+INACTIVE = (
+    (("layer.borderColor",), "layer.borderWidth"),
+    (("layer.shadowColor", "layer.shadowRadius", "layer.shadowOffset"), "layer.shadowOpacity"),
+)
+VIEW_BASES = (
+    "UIWindow", "UILabel", "UITextField", "UITextView", "UISegmentedControl", "UIPageControl", "UIStepper",
+    "UIDatePicker", "UIPickerView", "UIButton", "UISwitch", "UISlider", "UIControl", "UIImageView",
+    "UITableViewCell", "UICollectionViewCell", "UICollectionReusableView", "UITableViewHeaderFooterView",
+    "UICollectionView", "UITableView", "UIScrollView", "UINavigationBar", "UITabBar", "UIToolbar", "UISearchBar",
+    "WKWebView", "MKMapView", "UIActivityIndicatorView", "UIProgressView", "UIStackView", "UIVisualEffectView",
+    "UIHostingView",
+)
+LAYER_BASES = ("CAShapeLayer", "CAGradientLayer", "CATextLayer")
 
 
 def components(kind, value):
@@ -169,6 +213,40 @@ def check_limits(spot, attribute):
                 problem(spot, "no value lies between the bounds (P-ATTR-10)")
 
 
+def check_layer_attributes(where, layer, groups, nodes):
+    """The rules that hold across one layer's groups (P-ATTR-11 to 13, 16)."""
+    spot = "%s layer %s" % (where, layer)
+    listed = {a.get("id"): a for g in groups for a in g.get("attributes", [])}
+    backs_view = "view_class_name" in nodes.get(layer, {})
+    for view, plain in PAIRS:
+        if view in listed and plain in listed:
+            problem(spot, "%s and %s must not both be given (P-ATTR-11)" % (view, plain))
+        elif (plain if backs_view else view) in listed:
+            problem(spot, "gives %s; the Server gives %s for a layer %s a view (P-ATTR-11)"
+                    % (plain if backs_view else view, view if backs_view else plain, "that backs" if backs_view else "without"))
+    slots, sections = {}, {}
+    for attribute in listed.values():
+        cluster, slot = attribute.get("cluster"), attribute.get("slot")
+        if cluster is None:
+            continue
+        if slots.setdefault((cluster, slot), attribute["id"]) != attribute["id"]:
+            problem(spot, "%s.%s appears more than once (P-ATTR-12)" % (cluster, slot))
+        if sections.setdefault(cluster, attribute.get("section", "Unspecified")) != attribute.get("section", "Unspecified"):
+            problem(spot, "the attributes of cluster %s are in different sections (P-ATTR-12)" % cluster)
+    for attribute in listed.values():
+        cause = attribute.get("inactive_cause")
+        if cause is not None and cause not in listed:
+            problem(spot, "%s names %s, which the layer does not give (P-ATTR-13)" % (attribute["id"], cause))
+    for affected, cause in INACTIVE:
+        if cause in listed and listed[cause].get("value", {}).get("value", 0) == 0:
+            for id in affected:
+                if id in listed and listed[id].get("inactive_cause") != cause:
+                    problem(spot, "%s has no effect while %s is 0 and must name it (P-ATTR-13)" % (id, cause))
+    for group in groups:
+        if not group.get("class_name"):
+            problem(spot, "group %s has no class_name (P-ATTR-16)" % group.get("id"))
+
+
 def check_attributes(where, groups):
     for group in groups:
         for attribute in group.get("attributes", []):
@@ -181,6 +259,18 @@ def check_attributes(where, groups):
             if attribute.get("section", "Unspecified") not in SECTIONS:
                 problem(spot, "unknown section %s (P-ATTR-08)" % attribute.get("section"))
             check_limits(spot, attribute)
+            cluster, slot = attribute.get("cluster"), attribute.get("slot")
+            if (cluster is None) != (slot is None):
+                problem(spot, "slot is given exactly when cluster is (P-ATTR-12)")
+            elif cluster is not None and slot not in CLUSTERS.get(cluster, ()):
+                problem(spot, "%s.%s is not in the table of clusters (P-ATTR-12)" % (cluster, slot))
+            if attribute.get("unit", "Unspecified") != "Unspecified" and kind not in set(COMPONENTS) - {"TransformValue"}:
+                problem(spot, "only a numeric attribute other than a TransformValue has a unit (P-ATTR-14)")
+            if "system_name" in attribute.get("value", {}):
+                if attribute.get("value_type") != "ColorValue":
+                    problem(spot, "system_name belongs to a ColorValue (P-ATTR-15)")
+                elif attribute.get("id", "").startswith("layer."):
+                    problem(spot, "a layer's colors are CGColors and have no system_name (P-ATTR-15)")
             if attribute.get("value_type") == "EnumValue":
                 value = attribute.get("value", {})
                 cases, values = value.get("cases", []), value.get("case_values", [])
@@ -193,7 +283,7 @@ def check_attributes(where, groups):
 def check_item(spot, item, nodes, guides):
     kind = item.get("kind", "View")
     names = "class_name" in item and "display_class_name" in item
-    guide_only = [key for key in ("guide_id", "identifier", "guide_frame") if key in item]
+    guide_only = [key for key in ("guide_id", "identifier", "guide_frame", "guide_kind") if key in item]
     if kind in ("View", "LayoutGuide"):
         node = nodes.get(item.get("layer_id", 0))
         if node is None or "view_class_name" not in node:
@@ -203,6 +293,8 @@ def check_item(spot, item, nodes, guides):
     if kind == "LayoutGuide":
         if item.get("guide_id", 0) == 0 or not names or "guide_frame" not in item:
             problem(spot, "a layout guide needs guide_id, both class names and guide_frame (P-LAYOUT-03, 04)")
+        if item.get("guide_kind", "Unknown") == "Unknown":
+            problem(spot, "a layout guide needs guide_kind (P-LAYOUT-04)")
         canonical = json.dumps(item, sort_keys=True)
         if guides.setdefault(item.get("guide_id", 0), canonical) != canonical:
             problem(spot, "guide %d differs from another place it appears (P-LAYOUT-03)" % item.get("guide_id", 0))
@@ -225,6 +317,8 @@ def check_constraints(spot, constraints, layer, nodes, seen, guides):
             problem(where, "differs from another place the same id appears (P-LAYOUT-03)")
         if not constraint.get("class_name"):
             problem(where, "class_name must be given (P-LAYOUT-02)")
+        if constraint.get("origin", "Unknown") == "Unknown":
+            problem(where, "origin must be given (P-LAYOUT-09)")
         items = [constraint[key] for key in ("first_item", "second_item") if key in constraint]
         if "first_item" not in constraint or constraint.get("first_attribute", "NotAnAttribute") == "NotAnAttribute":
             problem(where, "a constraint needs a first item and attribute")
@@ -294,13 +388,15 @@ def main():
     attributes, flags = {}, {}
     for where, layer, groups in attribute_frames(scenarios):
         check_attributes(where, groups)
+        check_layer_attributes(where, layer, groups, nodes)
         for group in groups:
             for attribute in group.get("attributes", []):
                 key = (layer, attribute.get("id"))
                 attributes.setdefault(key, attribute)
-                marks = json.dumps([attribute.get(field) for field in ("editable", "accepts_nil", "value_kind", "section", "limits")])
+                marks = json.dumps([attribute.get(field) for field in ("editable", "accepts_nil", "value_kind", "section", "limits",
+                                                                  "cluster", "slot", "unit")])
                 if flags.setdefault(key, marks) != marks:
-                    problem(where, "layer %s attribute %s changes its editing fields, section or limits between fixtures" % key)
+                    problem(where, "layer %s attribute %s changes its editing fields, section, limits, cluster or unit between fixtures" % key)
 
     for scenario, frames in sorted(scenarios.items()):
         last_id, requests, streams, plain = 0, {}, {}, {}

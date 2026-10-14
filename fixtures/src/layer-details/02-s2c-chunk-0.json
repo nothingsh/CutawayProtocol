@@ -204,7 +204,10 @@
                 "editable": false,
                 "accepts_nil": false,
                 "value_kind": "RectValue",
-                "section": "Layout"
+                "section": "Layout",
+                "cluster": "geometry",
+                "slot": "frame",
+                "unit": "Points"
               },
               {
                 "id": "layer.bounds",
@@ -237,7 +240,10 @@
                     "minimum": 0.0,
                     "has_minimum": true
                   }
-                ]
+                ],
+                "cluster": "geometry",
+                "slot": "bounds",
+                "unit": "Points"
               },
               {
                 "id": "layer.position",
@@ -252,7 +258,33 @@
                 "editable": true,
                 "accepts_nil": false,
                 "value_kind": "PointValue",
-                "section": "Layout"
+                "section": "Layout",
+                "cluster": "geometry",
+                "slot": "position",
+                "unit": "Points"
+              },
+              {
+                "id": "layer.shadowOpacity",
+                "title": "Shadow Opacity",
+                "value_type": "DoubleValue",
+                "value": {
+                  "value": 0.0
+                },
+                "editable": true,
+                "accepts_nil": false,
+                "value_kind": "DoubleValue",
+                "section": "Appearance",
+                "limits": [
+                  {
+                    "minimum": 0.0,
+                    "has_minimum": true,
+                    "maximum": 1.0,
+                    "has_maximum": true
+                  }
+                ],
+                "cluster": "shadow",
+                "slot": "opacity",
+                "unit": "Fraction"
               },
               {
                 "id": "layer.shadowOffset",
@@ -267,47 +299,40 @@
                 "editable": true,
                 "accepts_nil": false,
                 "value_kind": "SizeValue",
-                "section": "General"
+                "section": "Appearance",
+                "cluster": "shadow",
+                "slot": "offset",
+                "inactive_cause": "layer.shadowOpacity",
+                "unit": "Points"
               },
               {
-                "id": "layer.opacity",
-                "title": "Opacity",
+                "id": "layer.backgroundColor",
+                "title": "Background",
+                "editable": true,
+                "accepts_nil": true,
+                "value_kind": "ColorValue",
+                "section": "Appearance"
+              },
+              {
+                "id": "layer.borderWidth",
+                "title": "Border Width",
                 "value_type": "DoubleValue",
                 "value": {
-                  "value": 1.0
+                  "value": 0.0
                 },
                 "editable": true,
                 "accepts_nil": false,
                 "value_kind": "DoubleValue",
-                "section": "General",
+                "section": "Appearance",
                 "limits": [
                   {
                     "minimum": 0.0,
-                    "has_minimum": true,
-                    "maximum": 1.0,
-                    "has_maximum": true
+                    "has_minimum": true
                   }
-                ]
-              },
-              {
-                "id": "layer.hidden",
-                "title": "Hidden",
-                "value_type": "BoolValue",
-                "value": {
-                  "value": false
-                },
-                "editable": true,
-                "accepts_nil": false,
-                "value_kind": "BoolValue",
-                "section": "General"
-              },
-              {
-                "id": "layer.backgroundColor",
-                "title": "Background Color",
-                "editable": true,
-                "accepts_nil": true,
-                "value_kind": "ColorValue",
-                "section": "General"
+                ],
+                "cluster": "border",
+                "slot": "width",
+                "unit": "Points"
               },
               {
                 "id": "layer.borderColor",
@@ -324,7 +349,10 @@
                 "editable": true,
                 "accepts_nil": true,
                 "value_kind": "ColorValue",
-                "section": "General"
+                "section": "Appearance",
+                "cluster": "border",
+                "slot": "color",
+                "inactive_cause": "layer.borderWidth"
               },
               {
                 "id": "layer.transform",
@@ -353,9 +381,12 @@
                 "editable": true,
                 "accepts_nil": false,
                 "value_kind": "TransformValue",
-                "section": "Layout"
+                "section": "Layout",
+                "cluster": "geometry",
+                "slot": "transform"
               }
-            ]
+            ],
+            "class_name": "CALayer"
           },
           {
             "id": "label",
@@ -371,7 +402,7 @@
                 "editable": true,
                 "accepts_nil": true,
                 "value_kind": "StringValue",
-                "section": "General"
+                "section": "Content"
               },
               {
                 "id": "label.fontSize",
@@ -383,18 +414,21 @@
                 "editable": true,
                 "accepts_nil": false,
                 "value_kind": "DoubleValue",
-                "section": "General",
+                "section": "Content",
                 "limits": [
                   {
                     "minimum": 0.0,
                     "has_minimum": true,
                     "minimum_exclusive": true
                   }
-                ]
+                ],
+                "cluster": "font",
+                "slot": "size",
+                "unit": "Points"
               },
               {
                 "id": "label.numberOfLines",
-                "title": "Number Of Lines",
+                "title": "Lines",
                 "value_type": "IntValue",
                 "value": {
                   "value": 1
@@ -402,13 +436,15 @@
                 "editable": true,
                 "accepts_nil": false,
                 "value_kind": "IntValue",
-                "section": "General",
+                "section": "Content",
                 "limits": [
                   {
                     "minimum": 0.0,
                     "has_minimum": true
                   }
-                ]
+                ],
+                "cluster": "lines",
+                "slot": "count"
               },
               {
                 "id": "label.textAlignment",
@@ -435,9 +471,10 @@
                 "editable": true,
                 "accepts_nil": false,
                 "value_kind": "EnumValue",
-                "section": "General"
+                "section": "Content"
               }
-            ]
+            ],
+            "class_name": "UILabel"
           },
           {
             "id": "view",
@@ -456,6 +493,73 @@
                 "section": "Identity"
               },
               {
+                "id": "view.isHidden",
+                "title": "Hidden",
+                "value_type": "BoolValue",
+                "value": {
+                  "value": false
+                },
+                "editable": true,
+                "accepts_nil": false,
+                "value_kind": "BoolValue",
+                "section": "Appearance",
+                "cluster": "visibility",
+                "slot": "hidden"
+              },
+              {
+                "id": "view.alpha",
+                "title": "Opacity",
+                "value_type": "DoubleValue",
+                "value": {
+                  "value": 1.0
+                },
+                "editable": true,
+                "accepts_nil": false,
+                "value_kind": "DoubleValue",
+                "section": "Appearance",
+                "limits": [
+                  {
+                    "minimum": 0.0,
+                    "has_minimum": true,
+                    "maximum": 1.0,
+                    "has_maximum": true
+                  }
+                ],
+                "cluster": "visibility",
+                "slot": "opacity",
+                "unit": "Fraction"
+              },
+              {
+                "id": "view.tintColor",
+                "title": "Tint",
+                "value_type": "ColorValue",
+                "value": {
+                  "value": {
+                    "red": 0.0,
+                    "green": 0.47843137,
+                    "blue": 1.0,
+                    "alpha": 1.0
+                  },
+                  "system_name": "systemBlue"
+                },
+                "editable": true,
+                "accepts_nil": true,
+                "value_kind": "ColorValue",
+                "section": "Appearance"
+              },
+              {
+                "id": "view.isUserInteractionEnabled",
+                "title": "User Interaction",
+                "value_type": "BoolValue",
+                "value": {
+                  "value": false
+                },
+                "editable": true,
+                "accepts_nil": false,
+                "value_kind": "BoolValue",
+                "section": "Behavior"
+              },
+              {
                 "id": "view.layoutMargins",
                 "title": "Layout Margins",
                 "value_type": "InsetsValue",
@@ -470,9 +574,11 @@
                 "editable": true,
                 "accepts_nil": false,
                 "value_kind": "InsetsValue",
-                "section": "Layout"
+                "section": "Layout",
+                "unit": "Points"
               }
-            ]
+            ],
+            "class_name": "UIView"
           }
         ]
       }

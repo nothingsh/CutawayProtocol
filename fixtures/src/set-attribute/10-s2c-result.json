@@ -9,26 +9,6 @@
         "title": "Layer",
         "attributes": [
           {
-            "id": "layer.opacity",
-            "title": "Opacity",
-            "value_type": "DoubleValue",
-            "value": {
-              "value": 0.5
-            },
-            "editable": true,
-            "accepts_nil": false,
-            "value_kind": "DoubleValue",
-            "section": "General",
-            "limits": [
-              {
-                "minimum": 0.0,
-                "has_minimum": true,
-                "maximum": 1.0,
-                "has_maximum": true
-              }
-            ]
-          },
-          {
             "id": "layer.cornerRadius",
             "title": "Corner Radius",
             "value_type": "DoubleValue",
@@ -38,23 +18,27 @@
             "editable": true,
             "accepts_nil": false,
             "value_kind": "DoubleValue",
-            "section": "General",
+            "section": "Appearance",
             "limits": [
               {
                 "minimum": 0.0,
                 "has_minimum": true
               }
-            ]
+            ],
+            "cluster": "corners",
+            "slot": "radius",
+            "unit": "Points"
           },
           {
             "id": "layer.backgroundColor",
-            "title": "Background Color",
+            "title": "Background",
             "editable": true,
             "accepts_nil": true,
             "value_kind": "ColorValue",
-            "section": "General"
+            "section": "Appearance"
           }
-        ]
+        ],
+        "class_name": "CALayer"
       },
       {
         "id": "view",
@@ -62,7 +46,7 @@
         "attributes": [
           {
             "id": "view.alpha",
-            "title": "Alpha",
+            "title": "Opacity",
             "value_type": "DoubleValue",
             "value": {
               "value": 0.5
@@ -70,7 +54,7 @@
             "editable": true,
             "accepts_nil": false,
             "value_kind": "DoubleValue",
-            "section": "General",
+            "section": "Appearance",
             "limits": [
               {
                 "minimum": 0.0,
@@ -78,17 +62,35 @@
                 "maximum": 1.0,
                 "has_maximum": true
               }
-            ]
+            ],
+            "cluster": "visibility",
+            "slot": "opacity",
+            "unit": "Fraction"
+          },
+          {
+            "id": "view.clipsToBounds",
+            "title": "Clips to Bounds",
+            "value_type": "BoolValue",
+            "value": {
+              "value": true
+            },
+            "editable": true,
+            "accepts_nil": false,
+            "value_kind": "BoolValue",
+            "section": "Appearance",
+            "cluster": "corners",
+            "slot": "clip"
           },
           {
             "id": "view.tintColor",
-            "title": "Tint Color",
+            "title": "Tint",
             "editable": true,
             "accepts_nil": true,
             "value_kind": "ColorValue",
-            "section": "General"
+            "section": "Appearance"
           }
-        ]
+        ],
+        "class_name": "UIView"
       }
     ]
   }
