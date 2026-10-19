@@ -1,0 +1,12 @@
+{
+  "request_id": 6,
+  "body_type": "SetAttribute",
+  "body": {
+    "layer_id": 10,
+    "attribute_id": "app.row.title",
+    "value_type": "StringValue",
+    "value": {
+      "value": "Grand Total"
+    }
+  }
+}

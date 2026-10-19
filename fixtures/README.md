@@ -38,7 +38,7 @@ After changing `src/` or the schema:
 scripts/build-fixtures.sh fixtures/bin
 ```
 
-`scripts/verify.sh` regenerates them and compares the result with `bin/`, failing on any difference; it also uses `scripts/check-fixtures.py` to check the fixtures against the clauses the schema cannot express (sequence numbers, chunk counts, how responses match requests, image sizes, the attributes' editing fields, the content of subtrees, the reply each modification request should get, the structure of constraints, the addresses, class origins, base classes and view controller visibility of nodes, attributes' sections, limits, units and system color names, each layer's paired attributes, clusters and inactive causes, light and dark colors and object references, the origins of constraints and kinds of layout guides, and the overrides of the environment and the answer each `SetEnvironment` should get). Do not edit the files under `bin/` by hand.
+`scripts/verify.sh` regenerates them and compares the result with `bin/`, failing on any difference; it also uses `scripts/check-fixtures.py` to check the fixtures against the clauses the schema cannot express (sequence numbers, chunk counts, how responses match requests, image sizes, the attributes' editing fields, the content of subtrees, the reply each modification request should get, the structure of constraints, the addresses, class origins, base classes and view controller visibility of nodes, attributes' sections, limits, units and system color names, each layer's paired attributes, clusters and inactive causes, light and dark colors and object references, virtual nodes and excluded subtrees, the host app's groups and registered color names, the origins of constraints and kinds of layout guides, and the overrides of the environment and the answer each `SetEnvironment` should get). Do not edit the files under `bin/` by hand.
 
 ## Scenarios
 
@@ -48,20 +48,20 @@ scripts/build-fixtures.sh fixtures/bin
 | `handshake-version-mismatch` | A 1.0 Client connects to a Server still at 0.5; the Server still replies with its own `Hello` (0.5), then closes the connection | P-HELLO-02, 03 |
 | `busy` | The only frame received when connecting to a Server that already has a Client | P-TRANS-03 |
 | `app-icon` | Getting the app icon | P-REQ-02; P-ICON-01; P-IMG-01 |
-| `hierarchy` | A hierarchy of one window and nine nodes, with view controllers, member variables, addresses, class origins, base classes and view controller visibility | P-HIER-01 to 04, 06 to 09, 14, 16 to 18 |
-| `layer-details` | Details of four layers in two chunks, ending normally; attributes carry editing fields, sections, limits, clusters, units, inactive causes, a system color name, light and dark colors, object references and the groups' class names | P-REQ-03; P-DET-01, 02, 04, 07; P-ATTR-01, 02, 06 to 18 |
+| `hierarchy` | A hierarchy of one window and fourteen nodes, with view controllers, member variables, addresses, class origins, base classes and view controller visibility; three virtual nodes, one of them nested and one collapsed by default; an excluded subtree | P-HIER-01 to 04, 06 to 09, 14, 16 to 21, 23; P-DET-10 |
+| `layer-details` | Details of six layers in two chunks, ending normally; attributes carry editing fields, sections, limits, clusters, units, inactive causes, a system color name, light and dark colors, object references and the groups' class names; a virtual node with the host app's group and a registered color name, and an excluded layer | P-REQ-03; P-DET-01, 02, 04, 07, 09, 10; P-ATTR-01, 02, 06 to 20 |
 | `layer-details-edge` | An omitted solo, an image with row padding and the attributes of a layer that backs no view, a failed capture with attributes, a request that wants nothing | P-DET-03, 04; P-IMG-02; P-ATTR-11 |
 | `layer-details-cancelled` | A details stream cancelled after its first chunk | P-REQ-01, 04, 06 |
 | `app-not-active` | Requesting the hierarchy after the app goes to the background | P-APP-01; P-REQ-05 |
 | `layer-details-failed` | The app leaves the active state while a details stream is in progress | P-APP-01; P-EVT-02; P-REQ-05 |
-| `set-attribute` | Changing text, an enum, a color (from nil to a color and back to nil) and `view.alpha`, each reply holding the whole layer's attributes; layer 4's `corners` cluster spans two groups | P-REQ-02; P-ATTR-06, 07, 11, 12; P-SET-01, 02 |
-| `set-attribute-rejected` | A layer that does not exist, a read-only attribute, the wrong member, nil for an attribute that does not accept nil, two values outside the limits, the layer attributes of two pairs on a layer that backs a view | P-SET-03, 07; P-ATTR-11; P-REQ-05 |
-| `subtree` | Getting the subtree of node 4, with its addresses, origins and base classes; getting a layer that does not exist | P-HIER-10, 11, 14, 16, 17 |
+| `set-attribute` | Changing text, an enum, a color (from nil to a color and back to nil) and `view.alpha`, each reply holding the whole layer's attributes; layer 4's `corners` cluster spans two groups; the color set equals a registered color; changing the host app's attribute of a virtual node | P-REQ-02; P-ATTR-06, 07, 11, 12, 19, 20; P-SET-01, 02 |
+| `set-attribute-rejected` | A layer that does not exist, a read-only attribute, the wrong member, nil for an attribute that does not accept nil, two values outside the limits, the layer attributes of two pairs on a layer that backs a view, a view attribute on a virtual node | P-SET-03, 07; P-ATTR-11; P-DET-09; P-REQ-05 |
+| `subtree` | Getting the subtree of node 4, with its addresses, origins and base classes and its virtual nodes; getting the subtree of a virtual node; getting a layer that does not exist | P-HIER-10, 11, 14, 16, 17, 22 |
 | `environment` | Getting the environment of a Server that can override all five kinds, overriding three traits, replacing them with one, removing them all | P-REQ-02; P-ENV-01, 02 |
 | `environment-rejected` | A Server that can override only the appearance: overriding the layout direction too is refused and changes nothing; after the app goes to the background, `SetEnvironment` is refused and `GetEnvironment` still answered | P-ENV-01, 04; P-APP-01; P-REQ-05 |
 | `layout-constraints` | Five layers, constraints only: constraints to views and to the safe area, without a second item, an optional constraint that does not hold, the same constraint in two places, constraints UIKit generates (using `MinY` and `MaxX`, with the superview as first item), a layer that does not back a view, a layer that does not exist; each constraint's origin and the guide's kind | P-DET-02; P-LAYOUT-01 to 07, 09 |
 
-Clauses no fixture covers: in P-HIER-01, the ordering of siblings with different `zPosition` (it is already done on the wire; a fixture can only give the result, not the `sublayers` before sorting); P-HIER-05 and P-ATTR-05 (non-finite numbers sent as 0); P-HELLO-04 (a handshake with different minor versions); P-IMG-03 (`scale` is nominal); P-DET-05 and P-DET-08 (scaling down oversized images); P-DET-06 (the chunk size limit); P-FRAME-03 (malformed frames); P-HELLO-05, 06, 07 and P-REQ-08; the "change no state" part of P-SET-03; P-SET-04 (the Server adjusting the value written); P-HIER-15 and the Client's side of P-SET-07; the replacement of a section the Client's version does not have in P-ATTR-08; P-SET-05 (layout, no animations); P-SET-06; the "no filtering" of P-LAYOUT-02; the judgement of P-LAYOUT-06 (a fixture can only give the result); non-finite numbers in `guide_frame` in P-LAYOUT-04; P-LAYOUT-08 (sending `NotAnAttribute` instead; the fixtures represent a Client at the same minor version as the Server); the handling of layers moved out of their window in P-HIER-12; the replacement of a unit, a base class or a guide kind the Client's version does not have in P-ATTR-14, P-HIER-17 and P-LAYOUT-04; how the Server judges P-HIER-16 to 18, P-ATTR-15 and P-LAYOUT-09 (a fixture can only give the result), including `NotShown`, transitions and `UIHostingView`. Of 1.2: P-ENV-02's windows that appear later, precedence over the app's own window overrides, layout and animations; P-ENV-03 (restoring when the connection closes); P-ENV-05; how the Server judges P-ATTR-17 and the rule of P-ATTR-18 not to load a view (a fixture can only give the result); the clusters and slots and `LayerReferenceValue` a 1.1 Client does not have (P-ATTR-03, 12). These rely on each side's own tests.
+Clauses no fixture covers: in P-HIER-01, the ordering of siblings with different `zPosition` (it is already done on the wire; a fixture can only give the result, not the `sublayers` before sorting); P-HIER-05 and P-ATTR-05 (non-finite numbers sent as 0); P-HELLO-04 (a handshake with different minor versions); P-IMG-03 (`scale` is nominal); P-DET-05 and P-DET-08 (scaling down oversized images); P-DET-06 (the chunk size limit); P-FRAME-03 (malformed frames); P-HELLO-05, 06, 07 and P-REQ-08; the "change no state" part of P-SET-03; P-SET-04 (the Server adjusting the value written); P-HIER-15 and the Client's side of P-SET-07; the replacement of a section the Client's version does not have in P-ATTR-08; P-SET-05 (layout, no animations); P-SET-06; the "no filtering" of P-LAYOUT-02; the judgement of P-LAYOUT-06 (a fixture can only give the result); non-finite numbers in `guide_frame` in P-LAYOUT-04; P-LAYOUT-08 (sending `NotAnAttribute` instead; the fixtures represent a Client at the same minor version as the Server); the handling of layers moved out of their window in P-HIER-12; the replacement of a unit, a base class or a guide kind the Client's version does not have in P-ATTR-14, P-HIER-17 and P-LAYOUT-04; how the Server judges P-HIER-16 to 18, P-ATTR-15 and P-LAYOUT-09 (a fixture can only give the result), including `NotShown`, transitions and `UIHostingView`. Of 1.2: P-ENV-02's windows that appear later, precedence over the app's own window overrides, layout and animations; P-ENV-03 (restoring when the connection closes); P-ENV-05; how the Server judges P-ATTR-17 and the rule of P-ATTR-18 not to load a view (a fixture can only give the result); the clusters and slots and `LayerReferenceValue` a 1.1 Client does not have (P-ATTR-03, 12); the identity of virtual nodes and duplicate identities (P-HIER-19), sending them only to 1.2 Clients and when a virtual node stops existing (P-HIER-22); leaving excluded layers out of other layers' images, and the statuses for a 1.1 Client (P-DET-10); the Server's checks of the host app's groups (P-ATTR-19); how a registered color is matched (P-ATTR-20); the redraw of P-SET-05 for virtual nodes. These rely on each side's own tests.
 
 ## Nodes of the `hierarchy` scenario
 
@@ -76,8 +76,13 @@ Clauses no fixture covers: in P-HIER-01, the ordering of siblings with different
 | 7 | 6 | `_UILabelLayer` | `UILabel` | 0, 0, 100, 40 | 150, 150 | Inside the scrolled content, affected by the parent's `bounds.origin` |
 | 8 | 2 | `CALayer` | None | 0, 0, 60, 30 | 10, 10 | `anchor_point` 0, 0 |
 | 9 | 2 | `CALayer` | `UIView` | 0, 0, 0, 0 | 300, 700 | Zero size |
+| 10 | 4 | `Demo.CardRow` | — | 0, 0, 300, 40 | 150, 20 | Virtual node "Total" (1.2); collapsed by default |
+| 11 | 10 | `Demo.CardBadge` | — | 0, 0, 40, 20 | 270, 20 | Virtual node "New" inside virtual node 10 |
+| 12 | 4 | `Demo.CardRow` | — | 0, 0, 300, 40 | 150, 60 | Virtual node "Tax" |
+| 13 | 2 | `CALayer` | `Demo.PaymentCardView` | 0, 0, 300, 80 | 196.5, 790 | Excluded from images (1.2), with its subtree |
+| 14 | 13 | `_UILabelLayer` | `UILabel` | 0, 0, 260, 24 | 150, 40 | Excluded, below node 13 |
 
-Except for node 8, `anchor_point` is 0.5, 0.5. In node 4's `transform`, m11 = m22 = 0.8660254037844387, m12 = 0.5, m21 = -0.5, and the rest is the same as the identity matrix. The other nodes' `transform` is the identity matrix.
+The nodes are in pre-order: 1, 2, 3, 4, 10, 11, 12, 5, 6, 7, 8, 9, 13, 14. Except for node 8, `anchor_point` is 0.5, 0.5. In node 4's `transform`, m11 = m22 = 0.8660254037844387, m12 = 0.5, m21 = -0.5, and the rest is the same as the identity matrix. The other nodes' `transform` is the identity matrix.
 
 ### View controllers and member variables (0.2)
 
@@ -91,15 +96,21 @@ Node 2 backs the root view of the view controller `Demo.HomeViewController` (rea
 | 6 | `HomeViewController.scrollView` | |
 | 8 | `DMBaseViewController._dividerLayer` | An Objective-C instance variable, underscore kept (P-HIER-09); it is declared by the superclass of `HomeViewController`, so its runtime class name differs from every ancestor's class names |
 
-Nodes 1, 2, 7 and 9 have no `member_references`. The runtime class names of the entries: `HomeViewController` is `Demo.HomeViewController`, `CardView` is `Demo.CardView`, and `DMBaseViewController` is the same in both.
+Node 13 has `HomeViewController.paymentCardView`. Nodes 1, 2, 7, 9 and 14 have no `member_references`, nor have the virtual nodes 10 to 12. The runtime class names of the entries: `HomeViewController` is `Demo.HomeViewController`, `CardView` is `Demo.CardView`, and `DMBaseViewController` is the same in both.
 
 ### Addresses (1.1)
 
-Every node has `layer_address` 0x600003B4C000 + 0x40 × (ID − 1); a node that backs a view has `view_address` 0x103806800 + 0x200 × ID; node 2 has `view_controller_address` 0x103007A00 (P-HIER-14). The JSON sources write them in decimal. Node 5 and node 8 do not back a view, so they have no `view_address`. The `subtree` scenario gives nodes 4 and 5 the same addresses.
+Every node has `layer_address` 0x600003B4C000 + 0x40 × (ID − 1); a node that backs a view has `view_address` 0x103806800 + 0x200 × ID; node 2 has `view_controller_address` 0x103007A00 (P-HIER-14). The JSON sources write them in decimal. Node 5 and node 8 do not back a view, so they have no `view_address`. The virtual nodes 10 to 12 have no addresses (P-HIER-14, 20). The `subtree` scenario gives nodes 4 and 5 the same addresses.
 
 ### Origins, base classes and visibility (1.1)
 
-Every node has `layer_class_origin` `System`; every node that backs a view has `view_class_origin` `System`, except node 4, whose `Demo.CardView` is `App`. Node 2's view controller `Demo.HomeViewController` has `view_controller_class_origin` `App` and `view_controller_visibility` `Shown` (P-HIER-16, 18). `view_base_class_name` is `UIWindow` for node 1, `UILabel` for nodes 3 and 7 and `UIScrollView` for node 6; nodes 2, 4 and 9 are plain `UIView`s, whose chain holds no class of the table. Node 5 has `layer_base_class_name` `CAShapeLayer`; the other layers' classes are not in the table (P-HIER-17). The `subtree` scenario gives nodes 4 and 5 the same fields.
+Every node has `layer_class_origin` `System`; every node that backs a view has `view_class_origin` `System`, except nodes 4 and 13, whose `Demo.CardView` and `Demo.PaymentCardView` are `App`. Node 2's view controller `Demo.HomeViewController` has `view_controller_class_origin` `App` and `view_controller_visibility` `Shown` (P-HIER-16, 18). `view_base_class_name` is `UIWindow` for node 1, `UILabel` for nodes 3, 7 and 14 and `UIScrollView` for node 6; node 13 is a plain `UIView` subclass; nodes 2, 4 and 9 are plain `UIView`s, whose chain holds no class of the table. Node 5 has `layer_base_class_name` `CAShapeLayer`; the other layers' classes are not in the table (P-HIER-17). The `subtree` scenario gives nodes 4 and 5 the same fields.
+
+### Virtual nodes and excluded subtrees (1.2)
+
+`Demo.CardView` (node 4) draws its rows itself, and the host app describes them as virtual nodes: 10 and 12 are rows, and 11 is a badge drawn inside row 10. They come before node 4's sublayer 5, in the order the host app gives (P-HIER-21), and 11, a child of a virtual node, is virtual too (P-HIER-19). Their `class_name` and `display_class_name` are the host app's type names, `layer_class_origin` is `App`, their geometry is in the parent's coordinate space with `bounds` at origin 0 and `position` at the center, and they have no view, view controller, member reference, address or base class fields (P-HIER-20). Node 10 has `collapsed_by_default` (P-HIER-23).
+
+The host app excludes `Demo.PaymentCardView` (node 13) from images, for example because it shows a card number. Node 13 and its label, node 14, both have `capture_excluded` (P-DET-10).
 
 ## Images
 
@@ -133,7 +144,7 @@ Layer 3 (a `UILabel`) has three groups with 22 attributes in all, covering 11 of
 
 Layer 3 backs a view, so it has `view.isHidden`, `view.alpha` and `view.backgroundColor` and not `layer.hidden`, `layer.opacity` and `layer.backgroundColor` (P-ATTR-11).
 
-Layer 4 has both a `solo` and a `group` image, and no attributes were requested. Layer 99 does not exist; its `status` is `LayerNotFound`. Layer 6 (a `UIScrollView`) was asked for attributes only, and has the twelfth member, `LayerReferenceValue` (1.2, P-ATTR-18), in two read-only attributes:
+Layer 4 has both a `solo` and a `group` image, and no attributes were requested. Layer 99 does not exist; its `status` is `LayerNotFound`. Layer 10, a virtual node, was asked for both images and attributes: it has no images and `status` `Ok`, and its only group is the host app's (P-DET-09, see below). Layer 13 is excluded: its `status` is `Excluded`, it has no `group` although one was asked for, and its attributes are given as usual (P-DET-10). Layer 6 (a `UIScrollView`) was asked for attributes only, and has the twelfth member, `LayerReferenceValue` (1.2, P-ATTR-18), in two read-only attributes:
 
 | Attribute | Section | `references` |
 |---|---|---|
@@ -158,6 +169,10 @@ Every attribute in `layer-details` and `layer-details-edge` carries `editable`, 
 - Titles follow the convention of 1.1 (Hidden, Opacity, Background, Tint, Lines); the IDs are unchanged, except that the background color is `view.backgroundColor` instead of `layer.backgroundColor` (P-ATTR-11).
 - `view.backgroundColor`, whose value is nil, still carries `value_kind` (`ColorValue`).
 - The `case_values` of `label.textAlignment` are 0 to 4, matching `cases` one to one.
+
+## The host app's group and registered colors (1.2)
+
+Virtual node 10 has one group, `app.row` (`class_name` `Demo.CardRow`, `from_app` true), with three attributes, all editable: `app.row.title` (`StringValue` "Total", `Content`), `app.row.amount` (`DoubleValue` 128.5, `Content`, limited to at least 0) and `app.row.color` (`ColorValue` (0.2, 0.4, 0.8, 1), `Appearance`). The host app has registered that color as `brandBlue`, so `app.row.color` has `name` `brandBlue`, and so has `view.backgroundColor` of layer 4 in `set-attribute` once it is set to the same value (P-ATTR-19, 20). Neither has `light` or `dark`: `brandBlue` does not change with the appearance.
 
 ## Sections and limits (1.1)
 
@@ -200,6 +215,7 @@ On layer 3, `layer.borderWidth` and `layer.shadowOpacity` are 0, so `layer.borde
 | 3 | 4 | `view.backgroundColor` | From nil to (0.2, 0.4, 0.8, 1) | |
 | 4 | 4 | `view.alpha` | 0.5 | |
 | 5 | 4 | `view.backgroundColor` | No `value`, that is, set to nil | The background color is back to nil; `value_kind` is still `ColorValue` |
+| 6 | 10 | `app.row.title` | `"Grand Total"` | Virtual node 10's group from the host app, with the new title (1.2) |
 
 Layer 4's attributes appear only in this scenario: the `layer` group has `layer.cornerRadius`, and the `view` group has `view.alpha`, `view.clipsToBounds`, `view.backgroundColor` and `view.tintColor`, whose value is nil. Layer 4 backs a view, so it has no `layer.opacity` and no `layer.backgroundColor` (P-ATTR-11); before 1.1 this scenario showed `layer.opacity` changing with `view.alpha`.
 
@@ -215,10 +231,11 @@ Layer 4's attributes appear only in this scenario: the `layer` group has `layer.
 | 6 | 3 | `layer.bounds` | −20, 0, −20, 24: x is free, width is below its limit of 0 | `InvalidAttributeValue` (P-SET-07) |
 | 7 | 3 | `layer.opacity` | 0.5: layer 3 backs a view, so its groups have `view.alpha` instead | `AttributeNotEditable` (P-ATTR-11, P-SET-03) |
 | 8 | 3 | `layer.backgroundColor` | (1, 0.5, 0, 1): layer 3 backs a view, so its groups have `view.backgroundColor` instead | `AttributeNotEditable` (P-ATTR-11, P-SET-03) |
+| 9 | 10 | `view.alpha` | 0.5: a virtual node has only the host app's groups | `AttributeNotEditable` (P-DET-09, P-SET-03) |
 
 ## The `subtree` scenario
 
-Getting the subtree of node 4 replies with nodes 4 and 5, exactly as in the `hierarchy` scenario; node 4's `parent_id` is still 2, and `key_window_id` is 1. Getting layer 99, which does not exist, replies with `LayerNotFound`.
+Getting the subtree of node 4 replies with nodes 4, 10, 11, 12 and 5, exactly as in the `hierarchy` scenario: the virtual nodes are part of the subtree (P-HIER-22); node 4's `parent_id` is still 2, and `key_window_id` is 1. Getting layer 99, which does not exist, replies with `LayerNotFound`. Getting the subtree of virtual node 10 replies with nodes 10 and 11; node 10's `parent_id` is 4, its parent node (P-HIER-10).
 
 ## The `environment` scenarios (1.2)
 

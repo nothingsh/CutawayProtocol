@@ -61,7 +61,11 @@ enum DeviceKind : ubyte { Unknown = 0, Phone = 1, Pad = 2, Mac = 3 }
 
 enum ImageEncoding : ubyte { Bgra8PremultipliedLzfse = 0 }
 
-enum DetailStatus : ubyte { Ok = 0, LayerNotFound = 1, CaptureFailed = 2 }
+enum DetailStatus : ubyte {
+  Ok = 0, LayerNotFound = 1, CaptureFailed = 2,
+  // 1.2: the host app excludes this node from images (P-DET-10)
+  Excluded = 3
+}
 
 // ---- Handshake ----
 
@@ -116,6 +120,9 @@ enum Origin : ubyte { Unknown = 0, System = 1, App = 2 }
 // 1.1: whether a view controller is shown (P-HIER-18). Unknown means absent.
 enum ViewControllerVisibility : ubyte { Unknown = 0, Shown = 1, NotShown = 2 }
 
+// 1.2: what a hierarchy node stands for (P-HIER-19).
+enum NodeKind : ubyte { Layer = 0, Virtual = 1 }
+
 // 0.2: an instance variable that holds the layer, or the view the layer backs.
 table MemberReference {
   owner_class_name: string;          // runtime name of the class that declares the variable
@@ -156,6 +163,13 @@ table LayerNode {
   view_base_class_name: string;     // only when the layer backs a view
   // 1.1: set exactly when view_controller_class_name is (P-HIER-18).
   view_controller_visibility: ViewControllerVisibility;
+  // 1.2: a part of the interface the host app draws and describes (P-HIER-19, 20).
+  node_kind: NodeKind;
+  name: string;                     // Virtual only: a short label the host app gives
+  // 1.2: the host app asks that the node start collapsed (P-HIER-23).
+  collapsed_by_default: bool;
+  // 1.2: the host app excludes this node, with its subtree, from images (P-DET-10).
+  capture_excluded: bool;
 }
 
 table GetHierarchy {}
@@ -196,6 +210,8 @@ table ColorValue {
   // only when the two differ (P-ATTR-17).
   light: Color;
   dark: Color;
+  // 1.2: the name of a color the host app registered that equals this one (P-ATTR-20).
+  name: string;
 }
 table PointValue { value: Point; }
 table SizeValue { value: Size; }
@@ -283,6 +299,8 @@ table AttributeGroup {
   attributes: [Attribute];
   // 1.1: runtime name of the class that declares the group's properties (P-ATTR-16).
   class_name: string;
+  // 1.2: the group comes from the host app, not the Server's own list (P-ATTR-19).
+  from_app: bool;
 }
 
 table LayerDetail {

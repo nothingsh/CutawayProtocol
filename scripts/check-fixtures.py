@@ -5,13 +5,15 @@ Usage: check-fixtures.py <fixtures/src>
 
 The hierarchy's order, its view controller and member reference fields, its
 addresses, class origins, known base classes and view controller visibility
-(P-HIER-01, 03, 07 to 09, 14, 16 to 18). Per scenario: request ids, stream sequencing and chunk counts (P-REQ-01, 03),
+(P-HIER-01, 03, 07 to 09, 14, 16 to 18); virtual nodes, their fields and their
+place among their siblings, and excluded subtrees (P-HIER-19 to 21, P-DET-10). Per scenario: request ids, stream sequencing and chunk counts (P-REQ-01, 03),
 one detail per requested layer (P-DET-01), what each detail contains against
 what was asked (P-DET-02 to 04), and every image's size and data (P-DET-07,
 P-IMG-01, 02). Every attribute's editing fields, section, limits, unit and
 system color name, and each layer's paired attributes, clusters and inactive
 causes (P-ATTR-06 to 16); light and dark colors and object references
-(P-ATTR-17, 18). Each plain
+(P-ATTR-17, 18); the host app's groups, and one color for each registered
+name (P-ATTR-19, 20). The details of virtual nodes and excluded layers (P-DET-09, 10). Each plain
 request gets one response with its request id (P-REQ-02); a subtree is the
 hierarchy's subtree under the asked root (P-HIER-10, 11); and the answer to
 each SetAttribute is the one P-SET-01 to 03 and 07 call for, judged by the
@@ -71,9 +73,11 @@ PLAIN_RESPONSES = {
 
 def check_nodes(where, listed, first_parent=None):
     """Checks a pre-order node list. The first node's parent may lie outside the list when first_parent is set."""
-    seen, addresses = set(), {}
+    seen, addresses, listed_by_id, has_sublayer = set(), {}, {}, set()
     for index, node in enumerate(listed):
         parent = node.get("parent_id", 0)
+        virtual = node.get("node_kind", "Layer") == "Virtual"
+        parent_node = listed_by_id.get(parent)
         if node.get("id", 0) == 0:
             problem(where, "a node has id 0 (P-HIER-03)")
         outside = index == 0 and first_parent is not None
@@ -82,12 +86,29 @@ def check_nodes(where, listed, first_parent=None):
         if not outside and parent != 0 and parent not in seen:
             problem(where, "node %d appears before its parent %d (P-HIER-01)" % (node.get("id", 0), parent))
         spot = "%s node %d" % (where, node.get("id", 0))
+        if virtual:
+            check_virtual_node(spot, node)
+        elif "name" in node:
+            problem(spot, "only a virtual node has name (P-HIER-20)")
+        if parent_node is not None:
+            parent_virtual = parent_node.get("node_kind", "Layer") == "Virtual"
+            if parent_virtual and not virtual:
+                problem(spot, "a virtual node has only virtual children (P-HIER-19)")
+            if not parent_virtual and virtual and parent in has_sublayer:
+                problem(spot, "a layer's virtual children come before its sublayers (P-HIER-21)")
+            if parent_node.get("capture_excluded", False) and not node.get("capture_excluded", False):
+                problem(spot, "every node below an excluded node is excluded (P-DET-10)")
+            if virtual and node.get("capture_excluded", False) and not parent_node.get("capture_excluded", False):
+                problem(spot, "a virtual node is excluded only below an excluded layer (P-DET-10)")
+        if not virtual:
+            has_sublayer.add(parent)
+        listed_by_id[node.get("id", 0)] = node
         controller = ("view_controller_class_name" in node, "view_controller_display_class_name" in node)
         if controller[0] != controller[1]:
             problem(spot, "view controller names must be given together (P-HIER-07)")
         if any(controller) and "view_class_name" not in node:
             problem(spot, "only a layer that backs a view can back a view controller's root view (P-HIER-07)")
-        if node.get("layer_address", 0) == 0:
+        if node.get("layer_address", 0) == 0 and not virtual:
             problem(spot, "layer_address must be given (P-HIER-14)")
         if ("view_address" in node) != ("view_class_name" in node):
             problem(spot, "view_address is given exactly when view_class_name is (P-HIER-14)")
@@ -116,6 +137,27 @@ def check_nodes(where, listed, first_parent=None):
             if not all(reference.get(key) for key in ("owner_class_name", "owner_display_class_name", "name")):
                 problem(spot, "a member reference needs both class names and a name (P-HIER-09)")
         seen.add(node.get("id", 0))
+
+
+# Fields of a node that a virtual node does not have (P-HIER-20).
+NOT_VIRTUAL = ("view_class_name", "view_display_class_name", "view_controller_class_name",
+               "view_controller_display_class_name", "member_references", "layer_address", "view_address",
+               "view_controller_address", "view_class_origin", "view_controller_class_origin",
+               "layer_base_class_name", "view_base_class_name", "view_controller_visibility")
+
+
+def check_virtual_node(spot, node):
+    present = [key for key in NOT_VIRTUAL if node.get(key)]
+    if present:
+        problem(spot, "a virtual node has no %s (P-HIER-20)" % ", ".join(present))
+    if node.get("layer_class_origin", "Unknown") != "App":
+        problem(spot, "a virtual node's layer_class_origin is App (P-HIER-20)")
+    if node.get("masks_to_bounds", False) or node.get("z_position", 0) != 0:
+        problem(spot, "a virtual node has masks_to_bounds false and z_position 0 (P-HIER-20)")
+    origin = node.get("bounds", {}).get("origin", {})
+    anchor = node.get("anchor_point", {})
+    if origin.get("x", 0) != 0 or origin.get("y", 0) != 0 or (anchor.get("x", 0), anchor.get("y", 0)) != (0.5, 0.5):
+        problem(spot, "a virtual node's bounds start at 0 and its anchor_point is 0.5, 0.5 (P-HIER-20)")
 
 
 # The components of each numeric member, in the order of P-ATTR-09.
@@ -288,11 +330,16 @@ def eight_bits(color):
     return [round(color.get(key, 0) * 255) for key in ("red", "green", "blue", "alpha")]
 
 
-def check_attributes(where, groups, nodes):
+def check_attributes(where, groups, nodes, colors):
     for group in groups:
+        from_app = group.get("from_app", False)
+        if group.get("id", "").startswith("app.") != from_app:
+            problem("%s group %s" % (where, group.get("id")), "a group's id begins with app. exactly when from_app is true (P-ATTR-19)")
         for attribute in group.get("attributes", []):
             spot = "%s attribute %s" % (where, attribute.get("id"))
             kind = attribute.get("value_kind", "None")
+            if attribute.get("id", "").startswith("app.") != from_app:
+                problem(spot, "an attribute's id begins with app. exactly when its group is from the host app (P-ATTR-19)")
             if kind == "None":
                 problem(spot, "value_kind must be given, also when the value is nil (P-ATTR-06)")
             elif "value_type" in attribute and attribute["value_type"] != kind:
@@ -322,6 +369,10 @@ def check_attributes(where, groups, nodes):
                     problem(spot, "light and dark are given only when they differ (P-ATTR-17)")
                 elif attribute.get("id", "").startswith("layer."):
                     problem(spot, "a layer's colors are CGColors and have no light and dark (P-ATTR-17)")
+            if "name" in value and attribute.get("value_type") == "ColorValue":
+                color = json.dumps([value.get(key) for key in ("value", "light", "dark")], sort_keys=True)
+                if colors.setdefault(value["name"], color) != color:
+                    problem(spot, "%s names another color elsewhere (P-ATTR-20)" % value["name"])
             if kind == "LayerReferenceValue":
                 if attribute.get("editable", False):
                     problem(spot, "an attribute that refers to objects is read-only (P-ATTR-18)")
@@ -445,9 +496,11 @@ def main():
         children.setdefault(node.get("parent_id", 0), []).append(node["id"])
 
     constraint_ids, guide_ids = {}, {}
-    attributes, flags = {}, {}
+    attributes, flags, colors = {}, {}, {}
     for where, layer, groups in attribute_frames(scenarios):
-        check_attributes(where, groups, nodes)
+        check_attributes(where, groups, nodes, colors)
+        if nodes.get(layer, {}).get("node_kind", "Layer") == "Virtual" and not all(g.get("from_app", False) for g in groups):
+            problem("%s layer %s" % (where, layer), "a virtual node has only the host app's groups (P-DET-09)")
         check_layer_attributes(where, layer, groups, nodes)
         for group in groups:
             for attribute in group.get("attributes", []):
@@ -549,20 +602,28 @@ def main():
                     if ask is None:
                         problem(spot, "was not requested")
                         continue
+                    node = nodes.get(layer)
+                    if (node is None) != (status == "LayerNotFound"):
+                        problem(spot, "status %s, but the layer %s (P-DET-02)" % (status, "does not exist" if node is None else "exists"))
+                    if node is not None and node.get("capture_excluded", False) != (status == "Excluded"):
+                        problem(spot, "status is Excluded exactly for an excluded node (P-DET-10)")
+                    virtual = node is not None and node.get("node_kind", "Layer") == "Virtual"
+                    if (virtual or status == "Excluded") and ("solo" in detail or "group" in detail):
+                        problem(spot, "a virtual node or an excluded layer has no images (P-DET-09, 10)")
                     if status == "LayerNotFound" and (set(detail) - {"layer_id", "status"}):
                         problem(spot, "LayerNotFound must carry nothing else (P-DET-02)")
                     if status == "CaptureFailed" and ("solo" in detail or "group" in detail):
                         problem(spot, "CaptureFailed must not carry images (P-DET-03)")
-                    if status == "Ok":
-                        leaf = not children.get(layer)
+                    if status in ("Ok", "Excluded") and ask.get("want_attributes", False) != ("attribute_groups" in detail):
+                        problem(spot, "attribute presence does not match the request")
+                    if status == "Ok" and not virtual:
+                        leaf = not any(nodes[child].get("node_kind", "Layer") == "Layer" for child in children.get(layer, []))
                         if ask.get("want_group", False) != ("group" in detail):
                             problem(spot, "group image presence does not match the request")
                         if "solo" in detail and not ask.get("want_solo", False):
                             problem(spot, "solo image was not requested")
                         if ask.get("want_solo", False) and "solo" not in detail and not (leaf and "group" in detail):
                             problem(spot, "solo may be omitted only for a layer without sublayers, with group present (P-DET-04)")
-                        if ask.get("want_attributes", False) != ("attribute_groups" in detail):
-                            problem(spot, "attribute presence does not match the request")
                     if status != "LayerNotFound" and "attribute_groups" in detail and not ask.get("want_attributes", False):
                         problem(spot, "attributes were not requested")
                     constraints = detail.get("constraints", [])
