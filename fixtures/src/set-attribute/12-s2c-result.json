@@ -1,0 +1,65 @@
+{
+  "request_id": 6,
+  "body_type": "SetAttributeResult",
+  "body": {
+    "layer_id": 10,
+    "attribute_groups": [
+      {
+        "id": "app.row",
+        "title": "Row",
+        "attributes": [
+          {
+            "id": "app.row.title",
+            "title": "Title",
+            "value_type": "StringValue",
+            "value": {
+              "value": "Grand Total"
+            },
+            "editable": true,
+            "accepts_nil": false,
+            "value_kind": "StringValue",
+            "section": "Content"
+          },
+          {
+            "id": "app.row.amount",
+            "title": "Amount",
+            "value_type": "DoubleValue",
+            "value": {
+              "value": 128.5
+            },
+            "editable": true,
+            "accepts_nil": false,
+            "value_kind": "DoubleValue",
+            "section": "Content",
+            "limits": [
+              {
+                "minimum": 0.0,
+                "has_minimum": true
+              }
+            ]
+          },
+          {
+            "id": "app.row.color",
+            "title": "Color",
+            "value_type": "ColorValue",
+            "value": {
+              "value": {
+                "red": 0.2,
+                "green": 0.4,
+                "blue": 0.8,
+                "alpha": 1.0
+              },
+              "name": "brandBlue"
+            },
+            "editable": true,
+            "accepts_nil": false,
+            "value_kind": "ColorValue",
+            "section": "Appearance"
+          }
+        ],
+        "class_name": "Demo.CardRow",
+        "from_app": true
+      }
+    ]
+  }
+}

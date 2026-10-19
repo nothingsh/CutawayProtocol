@@ -83,7 +83,8 @@
                 "green": 0.4,
                 "blue": 0.8,
                 "alpha": 1.0
-              }
+              },
+              "name": "brandBlue"
             },
             "editable": true,
             "accepts_nil": true,

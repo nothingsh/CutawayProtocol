@@ -233,6 +233,154 @@
         "view_class_origin": "App"
       },
       {
+        "id": 10,
+        "parent_id": 4,
+        "class_name": "Demo.CardRow",
+        "display_class_name": "CardRow",
+        "bounds": {
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "size": {
+            "width": 300,
+            "height": 40
+          }
+        },
+        "position": {
+          "x": 150,
+          "y": 20
+        },
+        "anchor_point": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "transform": {
+          "m11": 1.0,
+          "m12": 0.0,
+          "m13": 0.0,
+          "m14": 0.0,
+          "m21": 0.0,
+          "m22": 1.0,
+          "m23": 0.0,
+          "m24": 0.0,
+          "m31": 0.0,
+          "m32": 0.0,
+          "m33": 1.0,
+          "m34": 0.0,
+          "m41": 0.0,
+          "m42": 0.0,
+          "m43": 0.0,
+          "m44": 1.0
+        },
+        "z_position": 0.0,
+        "hidden": false,
+        "opacity": 1.0,
+        "masks_to_bounds": false,
+        "layer_class_origin": "App",
+        "node_kind": "Virtual",
+        "name": "Total",
+        "collapsed_by_default": true
+      },
+      {
+        "id": 11,
+        "parent_id": 10,
+        "class_name": "Demo.CardBadge",
+        "display_class_name": "CardBadge",
+        "bounds": {
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "size": {
+            "width": 40,
+            "height": 20
+          }
+        },
+        "position": {
+          "x": 270,
+          "y": 20
+        },
+        "anchor_point": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "transform": {
+          "m11": 1.0,
+          "m12": 0.0,
+          "m13": 0.0,
+          "m14": 0.0,
+          "m21": 0.0,
+          "m22": 1.0,
+          "m23": 0.0,
+          "m24": 0.0,
+          "m31": 0.0,
+          "m32": 0.0,
+          "m33": 1.0,
+          "m34": 0.0,
+          "m41": 0.0,
+          "m42": 0.0,
+          "m43": 0.0,
+          "m44": 1.0
+        },
+        "z_position": 0.0,
+        "hidden": false,
+        "opacity": 1.0,
+        "masks_to_bounds": false,
+        "layer_class_origin": "App",
+        "node_kind": "Virtual",
+        "name": "New"
+      },
+      {
+        "id": 12,
+        "parent_id": 4,
+        "class_name": "Demo.CardRow",
+        "display_class_name": "CardRow",
+        "bounds": {
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "size": {
+            "width": 300,
+            "height": 40
+          }
+        },
+        "position": {
+          "x": 150,
+          "y": 60
+        },
+        "anchor_point": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "transform": {
+          "m11": 1.0,
+          "m12": 0.0,
+          "m13": 0.0,
+          "m14": 0.0,
+          "m21": 0.0,
+          "m22": 1.0,
+          "m23": 0.0,
+          "m24": 0.0,
+          "m31": 0.0,
+          "m32": 0.0,
+          "m33": 1.0,
+          "m34": 0.0,
+          "m41": 0.0,
+          "m42": 0.0,
+          "m43": 0.0,
+          "m44": 1.0
+        },
+        "z_position": 0.0,
+        "hidden": false,
+        "opacity": 1.0,
+        "masks_to_bounds": false,
+        "layer_class_origin": "App",
+        "node_kind": "Virtual",
+        "name": "Tax"
+      },
+      {
         "id": 5,
         "parent_id": 4,
         "class_name": "CAShapeLayer",
@@ -512,6 +660,120 @@
         "view_address": 4353718784,
         "layer_class_origin": "System",
         "view_class_origin": "System"
+      },
+      {
+        "id": 13,
+        "parent_id": 2,
+        "class_name": "CALayer",
+        "display_class_name": "CALayer",
+        "view_class_name": "Demo.PaymentCardView",
+        "view_display_class_name": "PaymentCardView",
+        "bounds": {
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "size": {
+            "width": 300,
+            "height": 80
+          }
+        },
+        "position": {
+          "x": 196.5,
+          "y": 790
+        },
+        "anchor_point": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "transform": {
+          "m11": 1.0,
+          "m12": 0.0,
+          "m13": 0.0,
+          "m14": 0.0,
+          "m21": 0.0,
+          "m22": 1.0,
+          "m23": 0.0,
+          "m24": 0.0,
+          "m31": 0.0,
+          "m32": 0.0,
+          "m33": 1.0,
+          "m34": 0.0,
+          "m41": 0.0,
+          "m42": 0.0,
+          "m43": 0.0,
+          "m44": 1.0
+        },
+        "z_position": 0.0,
+        "hidden": false,
+        "opacity": 1.0,
+        "masks_to_bounds": false,
+        "member_references": [
+          {
+            "owner_class_name": "Demo.HomeViewController",
+            "owner_display_class_name": "HomeViewController",
+            "name": "paymentCardView"
+          }
+        ],
+        "layer_address": 105553178444544,
+        "view_address": 4353720832,
+        "layer_class_origin": "System",
+        "view_class_origin": "App",
+        "capture_excluded": true
+      },
+      {
+        "id": 14,
+        "parent_id": 13,
+        "class_name": "_UILabelLayer",
+        "display_class_name": "_UILabelLayer",
+        "view_class_name": "UILabel",
+        "view_display_class_name": "UILabel",
+        "bounds": {
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "size": {
+            "width": 260,
+            "height": 24
+          }
+        },
+        "position": {
+          "x": 150,
+          "y": 40
+        },
+        "anchor_point": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "transform": {
+          "m11": 1.0,
+          "m12": 0.0,
+          "m13": 0.0,
+          "m14": 0.0,
+          "m21": 0.0,
+          "m22": 1.0,
+          "m23": 0.0,
+          "m24": 0.0,
+          "m31": 0.0,
+          "m32": 0.0,
+          "m33": 1.0,
+          "m34": 0.0,
+          "m41": 0.0,
+          "m42": 0.0,
+          "m43": 0.0,
+          "m44": 1.0
+        },
+        "z_position": 0.0,
+        "hidden": false,
+        "opacity": 1.0,
+        "masks_to_bounds": false,
+        "layer_address": 105553178444608,
+        "view_address": 4353721344,
+        "layer_class_origin": "System",
+        "view_class_origin": "System",
+        "view_base_class_name": "UILabel",
+        "capture_excluded": true
       }
     ],
     "key_window_id": 1
