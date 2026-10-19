@@ -10,7 +10,8 @@ one detail per requested layer (P-DET-01), what each detail contains against
 what was asked (P-DET-02 to 04), and every image's size and data (P-DET-07,
 P-IMG-01, 02). Every attribute's editing fields, section, limits, unit and
 system color name, and each layer's paired attributes, clusters and inactive
-causes (P-ATTR-06 to 16). Each plain
+causes (P-ATTR-06 to 16); light and dark colors and object references
+(P-ATTR-17, 18). Each plain
 request gets one response with its request id (P-REQ-02); a subtree is the
 hierarchy's subtree under the asked root (P-HIER-10, 11); and the answer to
 each SetAttribute is the one P-SET-01 to 03 and 07 call for, judged by the
@@ -18,6 +19,9 @@ attributes the fixtures give for that layer. Constraints come only when asked
 for and only for a layer that backs a view; each involves its layer, its items
 are well formed, and one id means the same constraint everywhere (P-LAYOUT-01
 to 05); every constraint has an origin and every layout guide a kind (P-LAYOUT-04, 09).
+Each Environment lists each kind once, overrides only what can be overridden, and
+shows the overrides in effect; each SetEnvironment gets the answer P-ENV-01 to 04
+and P-APP-01 call for, and the overrides last until the next one (P-ENV-01, 02).
 """
 
 import glob
@@ -60,6 +64,8 @@ PLAIN_RESPONSES = {
     "GetHierarchy": "Hierarchy",
     "GetSubtree": "Hierarchy",
     "SetAttribute": "SetAttributeResult",
+    "GetEnvironment": "Environment",
+    "SetEnvironment": "Environment",
 }
 
 
@@ -122,9 +128,9 @@ COMPONENTS = {
     "InsetsValue": lambda v: [v.get(key, 0) for key in ("top", "left", "bottom", "right")],
     "TransformValue": lambda v: [v.get("m%d%d" % (row, column), 0) for row in range(1, 5) for column in range(1, 5)],
 }
-SECTIONS = ("Unspecified", "Identity", "General", "Layout", "Content", "Appearance", "Behavior")
+SECTIONS = ("Unspecified", "Identity", "General", "Layout", "Content", "Appearance", "Behavior", "Accessibility")
 
-# The tables of P-ATTR-11 to 13 and P-HIER-17.
+# The tables of P-ATTR-11 to 13 and P-HIER-17, as of 1.2.
 PAIRS = (("view.isHidden", "layer.hidden"), ("view.alpha", "layer.opacity"), ("view.clipsToBounds", "layer.masksToBounds"),
          ("view.backgroundColor", "layer.backgroundColor"))
 CLUSTERS = {
@@ -136,10 +142,13 @@ CLUSTERS = {
     "sizing": ("hugging.horizontal", "hugging.vertical", "compression.horizontal", "compression.vertical",
                "intrinsic.width", "intrinsic.height"),
     "autoLayout": ("autoresizing", "ambiguous"),
-    "font": ("name", "size"),
-    "lines": ("count", "lineBreak"),
+    "font": ("name", "size", "textStyle", "scalable"),
+    "lines": ("count", "lineBreak", "drawn", "truncated"),
     "state": ("enabled", "selected", "highlighted"),
     "scrolling": ("enabled", "paging"),
+    "image": ("name", "size", "scale", "renderingMode", "symbolConfiguration"),
+    "indexPath": ("section", "item"),
+    "listCounts": ("sections", "items"),
 }
 INACTIVE = (
     (("layer.borderColor",), "layer.borderWidth"),
@@ -154,6 +163,33 @@ VIEW_BASES = (
     "UIHostingView",
 )
 LAYER_BASES = ("CAShapeLayer", "CAGradientLayer", "CATextLayer")
+
+# The fields of Traits for each TraitKind (P-ENV-01).
+TRAITS = {
+    "UserInterfaceStyle": "user_interface_style",
+    "ContentSizeCategory": "content_size_category",
+    "LayoutDirection": "layout_direction",
+    "HorizontalSizeClass": "horizontal_size_class",
+    "VerticalSizeClass": "vertical_size_class",
+}
+
+
+def overrides_of(body):
+    """The traits a SetEnvironment or Environment overrides, by kind; absent means Unspecified (P-ENV-01, 02)."""
+    given = body.get("overrides", {})
+    return {kind: given[field] for kind, field in TRAITS.items() if given.get(field, "Unspecified") != "Unspecified"}
+
+
+def check_environment(where, body):
+    kinds = body.get("overridable", [])
+    if len(set(kinds)) != len(kinds):
+        problem(where, "overridable lists a kind more than once (P-ENV-01)")
+    current = body.get("current", {})
+    for kind, value in overrides_of(body).items():
+        if kind not in kinds:
+            problem(where, "overrides %s, which overridable does not list (P-ENV-01, 04)" % kind)
+        if current.get(TRAITS[kind], "Unspecified") != value:
+            problem(where, "current %s is not the override %s (P-ENV-01, 02)" % (TRAITS[kind], value))
 
 
 def components(kind, value):
@@ -248,7 +284,11 @@ def check_layer_attributes(where, layer, groups, nodes):
             problem(spot, "group %s has no class_name (P-ATTR-16)" % group.get("id"))
 
 
-def check_attributes(where, groups):
+def eight_bits(color):
+    return [round(color.get(key, 0) * 255) for key in ("red", "green", "blue", "alpha")]
+
+
+def check_attributes(where, groups, nodes):
     for group in groups:
         for attribute in group.get("attributes", []):
             spot = "%s attribute %s" % (where, attribute.get("id"))
@@ -272,6 +312,25 @@ def check_attributes(where, groups):
                     problem(spot, "system_name belongs to a ColorValue (P-ATTR-15)")
                 elif attribute.get("id", "").startswith("layer."):
                     problem(spot, "a layer's colors are CGColors and have no system_name (P-ATTR-15)")
+            value = attribute.get("value", {})
+            if "light" in value or "dark" in value:
+                if attribute.get("value_type") != "ColorValue":
+                    problem(spot, "light and dark belong to a ColorValue (P-ATTR-17)")
+                elif ("light" in value) != ("dark" in value):
+                    problem(spot, "light and dark are given together (P-ATTR-17)")
+                elif eight_bits(value["light"]) == eight_bits(value["dark"]):
+                    problem(spot, "light and dark are given only when they differ (P-ATTR-17)")
+                elif attribute.get("id", "").startswith("layer."):
+                    problem(spot, "a layer's colors are CGColors and have no light and dark (P-ATTR-17)")
+            if kind == "LayerReferenceValue":
+                if attribute.get("editable", False):
+                    problem(spot, "an attribute that refers to objects is read-only (P-ATTR-18)")
+                for reference in value.get("references", []):
+                    if not reference.get("class_name") or not reference.get("display_class_name"):
+                        problem(spot, "a reference needs both class names (P-ATTR-18)")
+                    layer = reference.get("layer_id", 0)
+                    if layer != 0 and "view_class_name" not in nodes.get(layer, {}):
+                        problem(spot, "reference to %d, which is not a layer that backs a view (P-ATTR-18)" % layer)
             if attribute.get("value_type") == "EnumValue":
                 value = attribute.get("value", {})
                 cases, values = value.get("cases", []), value.get("case_values", [])
@@ -388,7 +447,7 @@ def main():
     constraint_ids, guide_ids = {}, {}
     attributes, flags = {}, {}
     for where, layer, groups in attribute_frames(scenarios):
-        check_attributes(where, groups)
+        check_attributes(where, groups, nodes)
         check_layer_attributes(where, layer, groups, nodes)
         for group in groups:
             for attribute in group.get("attributes", []):
@@ -401,6 +460,7 @@ def main():
 
     for scenario, frames in sorted(scenarios.items()):
         last_id, requests, streams, plain = 0, {}, {}, {}
+        active, overrides, overridable = True, {}, None
         for name, frame in frames:
             where = "%s/%s" % (scenario, name)
             direction = name.split("-")[1]
@@ -440,6 +500,20 @@ def main():
                         check_nodes(where, listed, nodes[root].get("parent_id", 0))
                         if body.get("key_window_id", 0) != key_window:
                             problem(where, "key_window_id differs from the hierarchy's (P-HIER-10)")
+                elif asked in ("GetEnvironment", "SetEnvironment"):
+                    wanted, asked_for = None, overrides_of(question)
+                    if asked == "SetEnvironment":
+                        if not active:
+                            wanted = "AppNotActive"
+                        elif overridable is not None and set(asked_for) - set(overridable):
+                            wanted = "NotSupported"
+                    if kind == "Environment":
+                        check_environment(where, body)
+                        overridable = body.get("overridable", [])
+                        expected = asked_for if asked == "SetEnvironment" else overrides
+                        if overrides_of(body) != expected:
+                            problem(where, "overrides %s, expected %s (P-ENV-01, 02)" % (overrides_of(body), expected))
+                        overrides = overrides_of(body)
                 elif asked == "SetAttribute":
                     wanted = expected_set_error(question, nodes, attributes)
                     if kind == "SetAttributeResult" and wanted is None:
@@ -448,14 +522,16 @@ def main():
                         ids = [a.get("id") for g in body.get("attribute_groups", []) for a in g.get("attributes", [])]
                         if question.get("attribute_id") not in ids:
                             problem(where, "the result must hold the attribute that was set (P-SET-01)")
-                if asked in ("GetSubtree", "SetAttribute"):
+                if asked in ("GetSubtree", "SetAttribute", "GetEnvironment", "SetEnvironment"):
                     got = body.get("code", "Unknown") if kind == "Error" else None
                     if got != wanted:
-                        problem(where, "answered with %s, the protocol calls for %s (P-HIER-11, P-SET-03, 07)"
+                        problem(where, "answered with %s, the protocol calls for %s (P-HIER-11, P-SET-03, 07, P-ENV-04, P-APP-01)"
                                 % (got or kind, wanted or PLAIN_RESPONSES[asked]))
             elif kind in ("Hello", "AppStateChanged"):
                 if request_id != 0:
                     problem(where, "%s must use request_id 0" % kind)
+                if kind == "AppStateChanged":
+                    active = body.get("state", "Active") == "Active"
             elif kind == "LayerDetailsChunk":
                 stream = streams.get(request_id)
                 if stream is None:

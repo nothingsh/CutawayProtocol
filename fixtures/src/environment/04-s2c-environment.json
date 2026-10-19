@@ -1,0 +1,25 @@
+{
+  "request_id": 2,
+  "body_type": "Environment",
+  "body": {
+    "overrides": {
+      "user_interface_style": "Dark",
+      "content_size_category": "AccessibilityLarge",
+      "layout_direction": "RightToLeft"
+    },
+    "current": {
+      "user_interface_style": "Dark",
+      "content_size_category": "AccessibilityLarge",
+      "layout_direction": "RightToLeft",
+      "horizontal_size_class": "Compact",
+      "vertical_size_class": "Regular"
+    },
+    "overridable": [
+      "UserInterfaceStyle",
+      "ContentSizeCategory",
+      "LayoutDirection",
+      "HorizontalSizeClass",
+      "VerticalSizeClass"
+    ]
+  }
+}

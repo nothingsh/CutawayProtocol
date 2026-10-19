@@ -1,0 +1,11 @@
+{
+  "request_id": 2,
+  "body_type": "SetEnvironment",
+  "body": {
+    "overrides": {
+      "user_interface_style": "Dark",
+      "content_size_category": "AccessibilityLarge",
+      "layout_direction": "RightToLeft"
+    }
+  }
+}

@@ -20,6 +20,12 @@
         "want_solo": false,
         "want_group": true,
         "want_attributes": false
+      },
+      {
+        "layer_id": 6,
+        "want_solo": false,
+        "want_group": false,
+        "want_attributes": true
       }
     ],
     "max_texture_dimension": 16384

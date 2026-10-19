@@ -1,0 +1,7 @@
+{
+  "request_id": 0,
+  "body_type": "AppStateChanged",
+  "body": {
+    "state": "Background"
+  }
+}
