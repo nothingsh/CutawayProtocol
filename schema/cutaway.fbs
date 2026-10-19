@@ -48,7 +48,9 @@ enum ErrorCode : ushort {
   // 0.3
   LayerNotFound = 6,
   AttributeNotEditable = 7,
-  InvalidAttributeValue = 8
+  InvalidAttributeValue = 8,
+  // 1.2
+  NotSupported = 9
 }
 
 enum StreamStatus : ubyte { Completed = 0, Cancelled = 1, Failed = 2 }
@@ -190,6 +192,10 @@ table ColorValue {
   value: Color;
   // 1.1: the name of the UIKit system color this is, when the Server recognizes it (P-ATTR-15).
   system_name: string;
+  // 1.2: the value resolved in the light and in the dark appearance; set together,
+  // only when the two differ (P-ATTR-17).
+  light: Color;
+  dark: Color;
 }
 table PointValue { value: Point; }
 table SizeValue { value: Size; }
@@ -204,9 +210,23 @@ table EnumValue {
   case_values: [long];           // raw value of each case, parallel to cases
 }
 
+// 1.2: one object an attribute refers to (P-ATTR-18).
+table ObjectReference {
+  layer_id: ulong;               // the view's layer, or a view controller's root view's layer; 0 when none
+  class_name: string;            // runtime name of the object's class
+  display_class_name: string;    // human-readable name of that class
+}
+
+// 1.2: a read-only value that refers to other objects, in order (P-ATTR-18).
+table LayerReferenceValue {
+  references: [ObjectReference];
+}
+
 union AttributeValue {
   BoolValue, IntValue, DoubleValue, StringValue, ColorValue, PointValue,
-  SizeValue, RectValue, InsetsValue, TransformValue, EnumValue
+  SizeValue, RectValue, InsetsValue, TransformValue, EnumValue,
+  // 1.2
+  LayerReferenceValue
 }
 
 // 0.3: names the members of AttributeValue, with the same numbers as the union's type field.
@@ -214,13 +234,17 @@ union AttributeValue {
 enum AttributeValueKind : ubyte {
   None = 0, BoolValue = 1, IntValue = 2, DoubleValue = 3, StringValue = 4, ColorValue = 5,
   PointValue = 6, SizeValue = 7, RectValue = 8, InsetsValue = 9, TransformValue = 10,
-  EnumValue = 11
+  EnumValue = 11,
+  // 1.2
+  LayerReferenceValue = 12
 }
 
 // 1.1: which part of an inspector an attribute belongs on (P-ATTR-08).
 enum AttributeSection : ubyte {
   Unspecified = 0, Identity = 1, General = 2, Layout = 3,
-  Content = 4, Appearance = 5, Behavior = 6
+  Content = 4, Appearance = 5, Behavior = 6,
+  // 1.2
+  Accessibility = 7
 }
 
 // 1.1: how to read the numbers of an attribute's value (P-ATTR-14).
@@ -349,6 +373,44 @@ table LayoutConstraint {
   origin: Origin;                // whether UIKit created it (P-LAYOUT-09)
 }
 
+// ---- Environment (1.2) ----
+
+// The trait values the Client may override (P-ENV-01). Unspecified means not overridden,
+// or, in Environment.current, not readable.
+enum UserInterfaceStyle : ubyte { Unspecified = 0, Light = 1, Dark = 2 }
+enum ContentSizeCategory : ubyte {
+  Unspecified = 0, ExtraSmall = 1, Small = 2, Medium = 3, Large = 4,
+  ExtraLarge = 5, ExtraExtraLarge = 6, ExtraExtraExtraLarge = 7,
+  AccessibilityMedium = 8, AccessibilityLarge = 9, AccessibilityExtraLarge = 10,
+  AccessibilityExtraExtraLarge = 11, AccessibilityExtraExtraExtraLarge = 12
+}
+enum LayoutDirection : ubyte { Unspecified = 0, LeftToRight = 1, RightToLeft = 2 }
+enum SizeClass : ubyte { Unspecified = 0, Compact = 1, Regular = 2 }
+enum TraitKind : ubyte {
+  UserInterfaceStyle = 0, ContentSizeCategory = 1, LayoutDirection = 2,
+  HorizontalSizeClass = 3, VerticalSizeClass = 4
+}
+
+table Traits {
+  user_interface_style: UserInterfaceStyle;
+  content_size_category: ContentSizeCategory;
+  layout_direction: LayoutDirection;
+  horizontal_size_class: SizeClass;
+  vertical_size_class: SizeClass;
+}
+
+table GetEnvironment {}         // answered with Environment
+
+table SetEnvironment {
+  overrides: Traits;             // replaces every override; absent or all Unspecified removes them all (P-ENV-02)
+}
+
+table Environment {
+  overrides: Traits;             // what the Client has set on this connection
+  current: Traits;               // the key window's effective traits, overrides included
+  overridable: [TraitKind];      // what this Server can override on this device, each at most once
+}
+
 // ---- Control ----
 
 table Error {
@@ -376,7 +438,9 @@ union Body {
   Hello, GetAppIcon, AppIcon, GetHierarchy, Hierarchy, GetLayerDetails,
   LayerDetailsChunk, StreamEnd, Cancel, Error, AppStateChanged,
   // 0.3
-  SetAttribute, SetAttributeResult, GetSubtree
+  SetAttribute, SetAttributeResult, GetSubtree,
+  // 1.2
+  GetEnvironment, SetEnvironment, Environment
 }
 
 table Frame {

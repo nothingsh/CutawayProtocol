@@ -40,8 +40,8 @@ expect() { # name, pass|fail, mutation, new version
 expect "identical, same version"            pass 's' 0.1
 expect "append a table field, minor bump"   pass 're.sub(r"(table LayerNode \{[^}]*)\}", r"\1  corner_radius: double;\n}", s)' 0.2
 expect "append a table field, no bump"      fail 're.sub(r"(table LayerNode \{[^}]*)\}", r"\1  corner_radius: double;\n}", s)' 0.1
-expect "append an enum value, minor bump"   pass 's.replace("  InvalidAttributeValue = 8", "  InvalidAttributeValue = 8,\n  Cancelled = 9")' 0.2
-expect "append a union member, minor bump"  pass 's.replace("SetAttribute, SetAttributeResult, GetSubtree\n}", "SetAttribute, SetAttributeResult, GetSubtree, GetAppIcon2\n}").replace("table GetAppIcon {}", "table GetAppIcon {}\ntable GetAppIcon2 {}")' 0.2
+expect "append an enum value, minor bump"   pass 's.replace("  NotSupported = 9", "  NotSupported = 9,\n  Cancelled = 10")' 0.2
+expect "append a union member, minor bump"  pass 's.replace("GetEnvironment, SetEnvironment, Environment\n}", "GetEnvironment, SetEnvironment, Environment, GetAppIcon2\n}").replace("table GetAppIcon {}", "table GetAppIcon {}\ntable GetAppIcon2 {}")' 0.2
 expect "deprecate a field, minor bump"      pass 's.replace("  z_position: double;", "  z_position: double (deprecated);")' 0.2
 
 expect "remove a table field"               fail 's.replace("  hidden: bool;\n", "")' 0.2
@@ -53,7 +53,7 @@ expect "remove the last enum value"         fail 's.replace("enum DeviceKind : u
 expect "insert an enum value in the middle" fail 's.replace("Phone = 1, Pad = 2, Mac = 3", "Phone = 1, Watch = 4, Pad = 2, Mac = 3")' 0.2
 expect "renumber an enum value"             fail 's.replace("Pad = 2, Mac = 3", "Pad = 3, Mac = 2")' 0.2
 expect "change an enum underlying type"     fail 's.replace("enum Role : ubyte", "enum Role : ushort")' 0.2
-expect "remove the last union member"       fail 's.replace("SetAttribute, SetAttributeResult, GetSubtree\n}", "SetAttribute, SetAttributeResult\n}")' 0.2
+expect "remove the last union member"       fail 's.replace("GetEnvironment, SetEnvironment, Environment\n}", "GetEnvironment, SetEnvironment\n}")' 0.2
 expect "remove a table"                     fail 's.replace("table GetAppIcon {}\n", "").replace("Hello, GetAppIcon, AppIcon", "Hello, AppIcon")' 0.2
 expect "change the file identifier"         fail 's.replace("file_identifier \"CTWY\";", "file_identifier \"XXXX\";")' 0.2
 expect "change the root type"               fail 's.replace("root_type Frame;", "root_type Hello;")' 0.2

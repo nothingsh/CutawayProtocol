@@ -1,0 +1,16 @@
+{
+  "request_id": 1,
+  "body_type": "Environment",
+  "body": {
+    "current": {
+      "user_interface_style": "Light",
+      "content_size_category": "Large",
+      "layout_direction": "LeftToRight",
+      "horizontal_size_class": "Compact",
+      "vertical_size_class": "Regular"
+    },
+    "overridable": [
+      "UserInterfaceStyle"
+    ]
+  }
+}

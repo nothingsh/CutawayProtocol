@@ -419,6 +419,34 @@
                 "unit": "Points"
               },
               {
+                "id": "label.fontTextStyle",
+                "title": "Text Style",
+                "value_type": "StringValue",
+                "value": {
+                  "value": "body"
+                },
+                "editable": false,
+                "accepts_nil": false,
+                "value_kind": "StringValue",
+                "section": "Content",
+                "cluster": "font",
+                "slot": "textStyle"
+              },
+              {
+                "id": "label.adjustsFontForContentSizeCategory",
+                "title": "Adjusts to Text Size",
+                "value_type": "BoolValue",
+                "value": {
+                  "value": true
+                },
+                "editable": true,
+                "accepts_nil": false,
+                "value_kind": "BoolValue",
+                "section": "Content",
+                "cluster": "font",
+                "slot": "scalable"
+              },
+              {
                 "id": "label.numberOfLines",
                 "title": "Lines",
                 "value_type": "IntValue",
@@ -540,7 +568,19 @@
                     "blue": 1.0,
                     "alpha": 1.0
                   },
-                  "system_name": "systemBlue"
+                  "system_name": "systemBlue",
+                  "light": {
+                    "red": 0.0,
+                    "green": 0.47843137,
+                    "blue": 1.0,
+                    "alpha": 1.0
+                  },
+                  "dark": {
+                    "red": 0.039215688,
+                    "green": 0.5176471,
+                    "blue": 1.0,
+                    "alpha": 1.0
+                  }
                 },
                 "editable": true,
                 "accepts_nil": true,
@@ -576,6 +616,18 @@
                 "value_kind": "InsetsValue",
                 "section": "Layout",
                 "unit": "Points"
+              },
+              {
+                "id": "view.accessibilityLabel",
+                "title": "Label",
+                "value_type": "StringValue",
+                "value": {
+                  "value": "Welcome"
+                },
+                "editable": true,
+                "accepts_nil": true,
+                "value_kind": "StringValue",
+                "section": "Accessibility"
               }
             ],
             "class_name": "UIView"

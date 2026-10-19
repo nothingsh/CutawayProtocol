@@ -1,8 +1,8 @@
 # Cutaway Protocol
 
-The Cutaway protocol is the contract between CutawayServer (an SDK embedded in an iOS app) and Cutaway (a macOS app). The Server listens on a local port; once the Client connects, it retrieves the app's layer hierarchy, images, attributes and Auto Layout constraints by request and response, and can modify attributes. This document is normative: both implementations follow this document and `schema/cutaway.fbs`.
+The Cutaway protocol is the contract between CutawayServer (an SDK embedded in an iOS app) and Cutaway (a macOS app). The Server listens on a local port; once the Client connects, it retrieves the app's layer hierarchy, images, attributes and Auto Layout constraints by request and response, can modify attributes, and can override the app's trait environment. This document is normative: both implementations follow this document and `schema/cutaway.fbs`.
 
-Protocol version: 1.1
+Protocol version: 1.2
 
 Numbered paragraphs are normative clauses. "Must" and "must not" state requirements; "may" states what is allowed but not required. Everything else is explanation.
 
@@ -26,6 +26,9 @@ The payload of every frame is a `Frame`, whose `body` is one of the following me
 | `SetAttribute` | Client → Server | Modifies one attribute of one layer (0.3) |
 | `SetAttributeResult` | Server → Client | Response to `SetAttribute` (0.3) |
 | `GetSubtree` | Client → Server | Gets a layer and all its descendants; the response is a `Hierarchy` (0.3) |
+| `GetEnvironment` | Client → Server | Gets the overrides of the app's trait environment and its current traits; the response is an `Environment` (1.2) |
+| `SetEnvironment` | Client → Server | Replaces the overrides of the app's trait environment; the response is an `Environment` (1.2) |
+| `Environment` | Server → Client | Response to `GetEnvironment` and `SetEnvironment` (1.2) |
 
 ## Transport
 
@@ -79,7 +82,7 @@ Because the Server still replies with its own `Hello` when the major versions do
 
 **P-REQ-01** `request_id` is assigned by the Client, starts at 1, and increases monotonically within a connection. Every frame the Client sends (including `Cancel`) takes its own `request_id`. 0 is reserved for the handshake, events, and errors that answer no particular request. This clause binds only the Client: the Server does not check that `request_id` increases, and uses the value it received as is in the corresponding response.
 
-**P-REQ-02** An ordinary request gets exactly one response frame, with the same `request_id` as the request. `GetAppIcon`, `GetHierarchy`, `GetSubtree` and `SetAttribute` are ordinary requests.
+**P-REQ-02** An ordinary request gets exactly one response frame, with the same `request_id` as the request. `GetAppIcon`, `GetHierarchy`, `GetSubtree`, `SetAttribute`, `GetEnvironment` and `SetEnvironment` are ordinary requests. (The last two since 1.2.)
 
 **P-REQ-03** The response to a streaming request is zero or more `LayerDetailsChunk` frames followed by exactly one `StreamEnd`, all with the same `request_id` as the request. `sequence` starts at 0 and increases by 1 per chunk. The `chunk_count` of `StreamEnd` must equal the number of chunks sent. `GetLayerDetails` is a streaming request.
 
@@ -105,7 +108,7 @@ P-REQ-09 spares the Server from buffering requests without limit for a Client th
 
 **P-EVT-02** The Server must send the current state once right after a successful handshake, and then every time the state changes.
 
-**P-APP-01** When the app's state is not `Active`, the Server must reply to `GetHierarchy`, `GetSubtree` and `SetAttribute` with `Error` (code `AppNotActive`), and end `GetLayerDetails` with `StreamEnd` (status `Failed`, code `AppNotActive`). `GetAppIcon` is not affected by the app's state.
+**P-APP-01** When the app's state is not `Active`, the Server must reply to `GetHierarchy`, `GetSubtree`, `SetAttribute` and `SetEnvironment` with `Error` (code `AppNotActive`), and end `GetLayerDetails` with `StreamEnd` (status `Failed`, code `AppNotActive`). `GetAppIcon` and `GetEnvironment` are not affected by the app's state. (`SetEnvironment` and `GetEnvironment` since 1.2.)
 
 ## App icon
 
@@ -214,7 +217,7 @@ What P-DET-07 means: the Client pins the image to the four corners of the layer'
 
 **P-ATTR-07** The `case_values` of an `EnumValue` has the same length as `cases` and matches it one to one: it holds the raw value of each case.
 
-**P-ATTR-08** `section` names the part of an inspector an attribute belongs on: `Identity` for what identifies the object (for example `view.tag`); `Layout` for its geometry and Auto Layout; `Content` for what is particular to the concrete type of the view (for example a label's text, a scroll view's offset, a stack view's arrangement); `Appearance` for how it looks (for example visibility, colors, corners, borders and shadows); `Behavior` for how it responds to interaction (for example `view.isUserInteractionEnabled`); `General` for an attribute in none of these. It is a hint: the Client must still display every attribute (P-ATTR-03), and must display `Unspecified` and values it does not know as `General`. The Server must not send a section that the negotiated minor version does not have (P-HELLO-04); it sends `Unspecified` instead. (Since 1.1.)
+**P-ATTR-08** `section` names the part of an inspector an attribute belongs on: `Identity` for what identifies the object (for example `view.tag`); `Layout` for its geometry and Auto Layout; `Content` for what is particular to the concrete type of the view (for example a label's text, a scroll view's offset, a stack view's arrangement); `Appearance` for how it looks (for example visibility, colors, corners, borders and shadows); `Behavior` for how it responds to interaction (for example `view.isUserInteractionEnabled`); `Accessibility` for what it gives assistive technologies (for example `view.accessibilityLabel`); `General` for an attribute in none of these. It is a hint: the Client must still display every attribute (P-ATTR-03), and must display `Unspecified` and values it does not know as `General`. The Server must not send a section that the negotiated minor version does not have (P-HELLO-04); it sends `Unspecified` instead. (Since 1.1; `Accessibility` since 1.2.)
 
 **P-ATTR-09** `limits` states the values `SetAttribute` accepts for an attribute, one numeric component at a time. It is given only for an attribute whose `editable` is true and whose `value_kind` is `IntValue`, `DoubleValue`, `PointValue`, `SizeValue`, `RectValue`, `InsetsValue` or `TransformValue`; for any other attribute it is absent or empty, and the Client ignores it. It follows `value_kind`, and holds also when `value` is absent. Absent or empty means the Server states no limits. One entry applies to every component of the value. Otherwise there is exactly one entry per component, in the order of the fields: `PointValue` x, y; `SizeValue` width, height; `RectValue` origin x, origin y, width, height; `InsetsValue` top, left, bottom, right; `TransformValue` m11 to m44. The Client must treat `limits` with any other number of entries as absent. (Since 1.1.)
 
@@ -231,7 +234,7 @@ What P-DET-07 means: the Client pins the image to the four corners of the layer'
 
 For `view.backgroundColor` the two need not read the same: some views keep their background apart from their layer's (a `UILabel` draws it into its contents and leaves the layer's nil). On most such views the view's attribute is the one that is displayed, which is why it is the one given.
 
-**P-ATTR-12** `cluster` gathers attributes of one layer that the Client may show together as one compound row, and `slot` names the part each plays in it; `slot` is given exactly when `cluster` is. Both are taken from the table below, which is part of the protocol and is only appended to. Among one layer's attributes, the same `slot` of the same `cluster` appears at most once, and all attributes of one cluster have the same `section`. A cluster may span groups. Every slot is optional: a layer may give only some of a cluster's slots, and the Client decides how to show such a cluster (as a compound row, or attribute by attribute). The Client shows the attributes of a cluster it does not know attribute by attribute. Either way every attribute is displayed (P-ATTR-03). (Since 1.1.)
+**P-ATTR-12** `cluster` gathers attributes of one layer that the Client may show together as one compound row, and `slot` names the part each plays in it; `slot` is given exactly when `cluster` is. Both are taken from the table below, which is part of the protocol and is only appended to. Among one layer's attributes, the same `slot` of the same `cluster` appears at most once, and all attributes of one cluster have the same `section`. A cluster may span groups. Every slot is optional: a layer may give only some of a cluster's slots, and the Client decides how to show such a cluster (as a compound row, or attribute by attribute). The Client shows the attributes of a cluster it does not know attribute by attribute, and so too an attribute whose slot it does not know in a cluster it knows. Either way every attribute is displayed (P-ATTR-03). The Server uses only the clusters and slots that the negotiated minor version's table has; it sends any other attribute without `cluster` and `slot`. (Since 1.1; unknown slots and the negotiated table since 1.2.)
 
 | `cluster` | `slot`s | For example |
 |---|---|---|
@@ -242,10 +245,13 @@ For `view.backgroundColor` the two need not read the same: some views keep their
 | `geometry` | `frame`, `bounds`, `position`, `anchor`, `zPosition`, `transform` | `layer.frame` and so on |
 | `sizing` | `hugging.horizontal`, `hugging.vertical`, `compression.horizontal`, `compression.vertical`, `intrinsic.width`, `intrinsic.height` | content hugging and compression resistance priorities, intrinsic content size |
 | `autoLayout` | `autoresizing`, `ambiguous` | `view.translatesAutoresizingMaskIntoConstraints`, `view.hasAmbiguousLayout` |
-| `font` | `name`, `size` | `label.fontName`, `label.fontSize` |
-| `lines` | `count`, `lineBreak` | `label.numberOfLines`, `label.lineBreakMode` |
+| `font` | `name`, `size`; 1.2: `textStyle`, `scalable` | `label.fontName`, `label.fontSize`; the font's text style, `label.adjustsFontForContentSizeCategory` |
+| `lines` | `count`, `lineBreak`; 1.2: `drawn`, `truncated` | `label.numberOfLines`, `label.lineBreakMode`; the number of lines actually drawn, whether the text is truncated |
 | `state` | `enabled`, `selected`, `highlighted` | `control.isEnabled` and so on |
 | `scrolling` | `enabled`, `paging` | `scrollView.isScrollEnabled`, `scrollView.isPagingEnabled` |
+| `image` (1.2) | `name`, `size`, `scale`, `renderingMode`, `symbolConfiguration` | an image view's image: its name or symbol name, size, scale, rendering mode and symbol configuration |
+| `indexPath` (1.2) | `section`, `item` | a cell's index path; for a table view, `item` is the row |
+| `listCounts` (1.2) | `sections`, `items` | the number of sections of a table or collection view, and of items in all its sections together |
 
 **P-ATTR-13** When `inactive_cause` is given, the attribute has no effect on what is displayed right now, because of the current value of the attribute of the same layer whose ID it gives; that attribute must be in the same layer's attribute groups. It is a hint: the attribute can still be read, and still be modified when `editable` is true. When a layer gives both attributes of a row below and the condition holds, the Server must give `inactive_cause` as the row says; it may give it in other cases too. (Since 1.1.)
 
@@ -260,6 +266,10 @@ For `view.backgroundColor` the two need not read the same: some views keep their
 
 **P-ATTR-16** The `class_name` of an `AttributeGroup` must be given: it is the runtime name of the class that declares the group's properties (for example `CALayer` for `layer`, `UIView` for `view`, `UILabel` for `label`), not the runtime class of the object, so the `label` group of an instance of a subclass of `UILabel` still has `UILabel`. (Since 1.1.)
 
+**P-ATTR-17** The `light` and `dark` of a `ColorValue` are the attribute's value resolved with the trait collection the Server resolves `value` with, with only the appearance changed to light and to dark, each converted as P-ATTR-04 says. They are given together, and only when they differ: when, with each component rounded to 8 bits, at least one component of one differs from the other's. Otherwise both are absent, as they always are for a `CGColor` (for example `layer.borderColor`). `value` is still the value under the current traits, with the overrides of P-ENV-02 in effect. (Since 1.2.)
+
+**P-ATTR-18** A `LayerReferenceValue` refers to the objects an attribute holds, one entry of `references` per object, in the order the property holds them; it is empty when the property holds none. For a view, `layer_id` is the layer that backs it; for a view controller, the layer that backs its root view. Either is given only when that layer exists (P-HIER-12), and is 0 otherwise; for a view controller whose view is not loaded, and for any other object, it is 0. The Server must not load a view controller's view for this (as in P-HIER-07). `class_name` and `display_class_name` must be given, and name the object itself (for a view controller, the controller's class), by the same rules as for hierarchy nodes. An attribute whose `value_kind` is `LayerReferenceValue` is read-only: its `editable` is false. (Since 1.2.)
+
 Attributes are self-describing: the Server decides which groups and attributes to give and which of them may be modified, and the Client displays what it receives. An `EnumValue` gives the current value, the names of all cases, the name of the current case and the raw value of each case.
 
 A 0.2 Server does not send the three fields of P-ATTR-06; the Client reads false and `None`, that is, everything is read-only, with no need to check the version separately. `AttributeValueKind` has the same numbering as the type field of `AttributeValue`; FlatBuffers does not allow a union's type to be used as the type of another field, so it is defined separately, and the two are appended together from now on.
@@ -270,13 +280,19 @@ A 1.0 Server does not send `section` or `limits`; the Client reads `Unspecified`
 
 A 1.0 Server does not follow P-ATTR-11 to 16: it may give both attributes of a pair, and sends none of their fields; the Client reads no clusters, no inactive causes, `Unspecified` units, no system color names and no class names, and shows attributes one by one as before. Under P-ATTR-11 the attribute left out is not in the layer's groups, so a `SetAttribute` for it is answered with `AttributeNotEditable` (P-SET-03); the `hidden`, `opacity` and `masks_to_bounds` of `LayerNode` are unaffected. Which attribute has which section, cluster and unit is set by the Server's list of attributes, like titles; the protocol fixes only their meaning. The text that tells a person why an attribute has no effect is composed by the Client from the two attributes' titles. `system_name` is not named `name` so that a later version can give the names of an app's own colors without changing its meaning.
 
+Dynamic colors are those that resolve differently in light and dark, such as most system colors and colors from an asset catalog with a dark variant. P-ATTR-17 compares the two resolved values rather than asking whether the color is dynamic, since a color built with a provider may resolve the same in both. High contrast variants are not given.
+
+A `LayerReferenceValue` lets the Client offer a way to the objects an attribute names: a stack view's arranged subviews, a table view's data source and delegate (often a view controller). An entry whose `layer_id` is 0, or names a layer the Client does not have in its hierarchy, is shown by its class name alone. Under P-ATTR-03, a Server whose negotiated minor version is 1.1 sends such an attribute as a `StringValue` describing the objects, with `value_kind` `StringValue`.
+
+A 1.1 Server gives no `light`, `dark` or references and no `Accessibility` section, and only the clusters and slots of 1.1; the Client reads them as absent. Because a table field reaches every peer (P-HELLO-04), a cluster or slot added later would otherwise reach a Client that knows the cluster but not the slot, which is why the Server answers by the negotiated table.
+
 Limits cover numbers only. `BoolValue`, `StringValue` and `EnumValue` have none (an `EnumValue` is limited by its `case_values`), and neither has `ColorValue`: its components are always 0 to 1 (P-ATTR-04).
 
 ## Modifying attributes
 
 **P-SET-01** When `SetAttribute` succeeds, the response is `SetAttributeResult`: `layer_id` is the same as the request's, and `attribute_groups` is all of this layer's attribute groups, read again after the modification took effect, by the same rules as the `attribute_groups` of `LayerDetail`.
 
-**P-SET-02** `value` must be the member that the attribute's `value_kind` names; an absent `value` means setting the attribute to nil, which is allowed only when `accepts_nil` is true. When the value is an `EnumValue`, the Server reads only its `value`, which must be one of `case_values`; `cases` and `case_name` may be absent. When the value is a `ColorValue`, the Server reads only its `value` and ignores `system_name` (since 1.1).
+**P-SET-02** `value` must be the member that the attribute's `value_kind` names; an absent `value` means setting the attribute to nil, which is allowed only when `accepts_nil` is true. When the value is an `EnumValue`, the Server reads only its `value`, which must be one of `case_values`; `cases` and `case_name` may be absent. When the value is a `ColorValue`, the Server reads only its `value` and ignores `system_name` (since 1.1), `light` and `dark` (since 1.2).
 
 **P-SET-03** When a request is invalid, the Server must reply with `Error`, and must not change any state of the app. The error code is the first of the following that applies: `LayerNotFound` when the layer does not exist; `AttributeNotEditable` when this layer's attribute groups have no attribute with this ID, or its `editable` is false; `InvalidAttributeValue` when the request violates P-SET-02, contains a non-finite number, or is rejected by the Server's other checks.
 
@@ -336,6 +352,24 @@ A 0.3 Server does not know `want_constraints` and ignores it, and the details it
 
 The distance between two layers is computed by the Client after converting both into the same coordinate space under P-HIER-06; the protocol does not give it separately.
 
+## Environment
+
+**P-ENV-01** The response to `GetEnvironment` and to `SetEnvironment` is `Environment`. `overrides` holds what the Client has set on this connection, with `Unspecified` for a trait it has not overridden. `current` holds the effective traits of the key window, or of the first window when there is no key window, with the overrides in effect; it is `Unspecified` only for a trait the Server cannot read. `overridable` lists the kinds of trait this Server can override on this device, each at most once. An absent `overrides` or `current` means every trait in it is `Unspecified`. (Since 1.2.)
+
+**P-ENV-02** `SetEnvironment` replaces all of this connection's overrides with its `overrides`: a trait that is `Unspecified` there is no longer overridden and goes back to the app's own value, and an absent `overrides` removes them all. The overrides apply to every window of the app, including windows that appear later, and take precedence over the values the app sets on its windows and window scenes itself (for example a window's `overrideUserInterfaceStyle`). The Server applies them on the main thread, must not produce implicit animations, and has the windows finish layout before replying, as in P-SET-05. (Since 1.2.)
+
+**P-ENV-03** Overrides last only as long as the connection. When the connection closes, for any reason, the Server must remove every override and restore the values of the app's own that it replaced to apply them. What the app did in response to the changed traits is the app's, and is not undone. This differs from P-SET-06: a modified attribute remains after the connection closes; an override does not. (Since 1.2.)
+
+**P-ENV-04** When `overrides` gives a value other than `Unspecified` for a kind that is not in `overridable`, or a value the Server does not know, the Server must reply with `Error` (code `NotSupported`), and must not change any override. When the app is not active, P-APP-01 applies first. (Since 1.2.)
+
+**P-ENV-05** Overrides that the app's view controllers and views set themselves (for example a view controller's `overrideUserInterfaceStyle`) still take precedence under UIKit's rules, and the part of the interface below them does not change. The Server must not change them. (Since 1.2.)
+
+On iOS 17 and later a Server can override all five kinds with `traitOverrides`; before iOS 17 only the appearance can be overridden for a window, so `overridable` lists only `UserInterfaceStyle`. The Server lists a kind only when overriding it takes effect. Overriding the content size category changes only content that takes its font from the trait environment (with `adjustsFontForContentSizeCategory`, or a preferred font obtained for a trait collection); a font the app obtains without one reads the app's global setting and does not change. Overriding the layout direction does not change what the app reads from `UIApplication.userInterfaceLayoutDirection`, nor views whose `semanticContentAttribute` forces a direction. These are known differences from changing the device's settings. Size classes may be combined freely; some system containers lay themselves out differently under a size class the device does not normally have.
+
+`current` describes one window. On iPad, windows in different scenes may have different size classes, and a view controller may override traits for its own part of the interface (P-ENV-05), so what a given layer shows may differ from `current`.
+
+After `SetEnvironment`, the app may rebuild parts of its interface in response, so layer IDs may change throughout: the Client gets the whole hierarchy again with `GetHierarchy` rather than one window's `GetSubtree`, and then the images it needs. Colors held as `CGColor` (for example `layer.borderColor`) follow a change of appearance only if the app updates them itself. There is no event for the app changing its own environment (for example the person switching the device to dark mode); the Client reads `Environment` again when it refreshes. If the app sets one of the overridden values itself while the override is in effect, which value remains after the connection closes is up to the Server.
+
 ## Error codes
 
 | Code | Meaning |
@@ -349,6 +383,7 @@ The distance between two layers is computed by the Client after converting both 
 | `LayerNotFound` | The layer the request names does not exist (0.3, P-HIER-11, P-SET-03) |
 | `AttributeNotEditable` | The attribute does not exist or cannot be modified (0.3, P-SET-03) |
 | `InvalidAttributeValue` | The value to write is invalid (0.3, P-SET-03), or outside the attribute's limits (1.1, P-SET-07) |
+| `NotSupported` | The Server cannot apply an override the request asks for (1.2, P-ENV-04) |
 
 The `message` of `Error` is an English explanation for people to read; the Client must not make decisions based on its content.
 

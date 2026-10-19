@@ -38,18 +38,18 @@ After changing `src/` or the schema:
 scripts/build-fixtures.sh fixtures/bin
 ```
 
-`scripts/verify.sh` regenerates them and compares the result with `bin/`, failing on any difference; it also uses `scripts/check-fixtures.py` to check the fixtures against the clauses the schema cannot express (sequence numbers, chunk counts, how responses match requests, image sizes, the attributes' editing fields, the content of subtrees, the reply each modification request should get, the structure of constraints, the addresses, class origins, base classes and view controller visibility of nodes, attributes' sections, limits, units and system color names, each layer's paired attributes, clusters and inactive causes, and the origins of constraints and kinds of layout guides). Do not edit the files under `bin/` by hand.
+`scripts/verify.sh` regenerates them and compares the result with `bin/`, failing on any difference; it also uses `scripts/check-fixtures.py` to check the fixtures against the clauses the schema cannot express (sequence numbers, chunk counts, how responses match requests, image sizes, the attributes' editing fields, the content of subtrees, the reply each modification request should get, the structure of constraints, the addresses, class origins, base classes and view controller visibility of nodes, attributes' sections, limits, units and system color names, each layer's paired attributes, clusters and inactive causes, light and dark colors and object references, the origins of constraints and kinds of layout guides, and the overrides of the environment and the answer each `SetEnvironment` should get). Do not edit the files under `bin/` by hand.
 
 ## Scenarios
 
 | Scenario | Content | Clauses verified |
 |---|---|---|
-| `handshake` | A successful handshake at 1.1, after which the Server sends the current state | P-HELLO-01, 02; P-EVT-01, 02 |
+| `handshake` | A successful handshake at 1.2, after which the Server sends the current state | P-HELLO-01, 02; P-EVT-01, 02 |
 | `handshake-version-mismatch` | A 1.0 Client connects to a Server still at 0.5; the Server still replies with its own `Hello` (0.5), then closes the connection | P-HELLO-02, 03 |
 | `busy` | The only frame received when connecting to a Server that already has a Client | P-TRANS-03 |
 | `app-icon` | Getting the app icon | P-REQ-02; P-ICON-01; P-IMG-01 |
 | `hierarchy` | A hierarchy of one window and nine nodes, with view controllers, member variables, addresses, class origins, base classes and view controller visibility | P-HIER-01 to 04, 06 to 09, 14, 16 to 18 |
-| `layer-details` | Details of three layers in two chunks, ending normally; attributes carry editing fields, sections, limits, clusters, units, inactive causes, a system color name and the groups' class names | P-REQ-03; P-DET-01, 02, 04, 07; P-ATTR-01, 02, 06 to 16 |
+| `layer-details` | Details of four layers in two chunks, ending normally; attributes carry editing fields, sections, limits, clusters, units, inactive causes, a system color name, light and dark colors, object references and the groups' class names | P-REQ-03; P-DET-01, 02, 04, 07; P-ATTR-01, 02, 06 to 18 |
 | `layer-details-edge` | An omitted solo, an image with row padding and the attributes of a layer that backs no view, a failed capture with attributes, a request that wants nothing | P-DET-03, 04; P-IMG-02; P-ATTR-11 |
 | `layer-details-cancelled` | A details stream cancelled after its first chunk | P-REQ-01, 04, 06 |
 | `app-not-active` | Requesting the hierarchy after the app goes to the background | P-APP-01; P-REQ-05 |
@@ -57,9 +57,11 @@ scripts/build-fixtures.sh fixtures/bin
 | `set-attribute` | Changing text, an enum, a color (from nil to a color and back to nil) and `view.alpha`, each reply holding the whole layer's attributes; layer 4's `corners` cluster spans two groups | P-REQ-02; P-ATTR-06, 07, 11, 12; P-SET-01, 02 |
 | `set-attribute-rejected` | A layer that does not exist, a read-only attribute, the wrong member, nil for an attribute that does not accept nil, two values outside the limits, the layer attributes of two pairs on a layer that backs a view | P-SET-03, 07; P-ATTR-11; P-REQ-05 |
 | `subtree` | Getting the subtree of node 4, with its addresses, origins and base classes; getting a layer that does not exist | P-HIER-10, 11, 14, 16, 17 |
+| `environment` | Getting the environment of a Server that can override all five kinds, overriding three traits, replacing them with one, removing them all | P-REQ-02; P-ENV-01, 02 |
+| `environment-rejected` | A Server that can override only the appearance: overriding the layout direction too is refused and changes nothing; after the app goes to the background, `SetEnvironment` is refused and `GetEnvironment` still answered | P-ENV-01, 04; P-APP-01; P-REQ-05 |
 | `layout-constraints` | Five layers, constraints only: constraints to views and to the safe area, without a second item, an optional constraint that does not hold, the same constraint in two places, constraints UIKit generates (using `MinY` and `MaxX`, with the superview as first item), a layer that does not back a view, a layer that does not exist; each constraint's origin and the guide's kind | P-DET-02; P-LAYOUT-01 to 07, 09 |
 
-Clauses no fixture covers: in P-HIER-01, the ordering of siblings with different `zPosition` (it is already done on the wire; a fixture can only give the result, not the `sublayers` before sorting); P-HIER-05 and P-ATTR-05 (non-finite numbers sent as 0); P-HELLO-04 (a handshake with different minor versions); P-IMG-03 (`scale` is nominal); P-DET-05 and P-DET-08 (scaling down oversized images); P-DET-06 (the chunk size limit); P-FRAME-03 (malformed frames); P-HELLO-05, 06, 07 and P-REQ-08; the "change no state" part of P-SET-03; P-SET-04 (the Server adjusting the value written); P-HIER-15 and the Client's side of P-SET-07; the replacement of a section the Client's version does not have in P-ATTR-08; P-SET-05 (layout, no animations); P-SET-06; the "no filtering" of P-LAYOUT-02; the judgement of P-LAYOUT-06 (a fixture can only give the result); non-finite numbers in `guide_frame` in P-LAYOUT-04; P-LAYOUT-08 (sending `NotAnAttribute` instead; the fixtures represent a Client at the same minor version as the Server); the handling of layers moved out of their window in P-HIER-12; the replacement of a unit, a base class or a guide kind the Client's version does not have in P-ATTR-14, P-HIER-17 and P-LAYOUT-04; how the Server judges P-HIER-16 to 18, P-ATTR-15 and P-LAYOUT-09 (a fixture can only give the result), including `NotShown`, transitions and `UIHostingView`. These rely on each side's own tests.
+Clauses no fixture covers: in P-HIER-01, the ordering of siblings with different `zPosition` (it is already done on the wire; a fixture can only give the result, not the `sublayers` before sorting); P-HIER-05 and P-ATTR-05 (non-finite numbers sent as 0); P-HELLO-04 (a handshake with different minor versions); P-IMG-03 (`scale` is nominal); P-DET-05 and P-DET-08 (scaling down oversized images); P-DET-06 (the chunk size limit); P-FRAME-03 (malformed frames); P-HELLO-05, 06, 07 and P-REQ-08; the "change no state" part of P-SET-03; P-SET-04 (the Server adjusting the value written); P-HIER-15 and the Client's side of P-SET-07; the replacement of a section the Client's version does not have in P-ATTR-08; P-SET-05 (layout, no animations); P-SET-06; the "no filtering" of P-LAYOUT-02; the judgement of P-LAYOUT-06 (a fixture can only give the result); non-finite numbers in `guide_frame` in P-LAYOUT-04; P-LAYOUT-08 (sending `NotAnAttribute` instead; the fixtures represent a Client at the same minor version as the Server); the handling of layers moved out of their window in P-HIER-12; the replacement of a unit, a base class or a guide kind the Client's version does not have in P-ATTR-14, P-HIER-17 and P-LAYOUT-04; how the Server judges P-HIER-16 to 18, P-ATTR-15 and P-LAYOUT-09 (a fixture can only give the result), including `NotShown`, transitions and `UIHostingView`. Of 1.2: P-ENV-02's windows that appear later, precedence over the app's own window overrides, layout and animations; P-ENV-03 (restoring when the connection closes); P-ENV-05; how the Server judges P-ATTR-17 and the rule of P-ATTR-18 not to load a view (a fixture can only give the result); the clusters and slots and `LayerReferenceValue` a 1.1 Client does not have (P-ATTR-03, 12). These rely on each side's own tests.
 
 ## Nodes of the `hierarchy` scenario
 
@@ -121,17 +123,22 @@ The images in layer details are all single-colored, with `scale` 1 and a pixel s
 
 ## Attributes of the `layer-details` scenario
 
-Layer 3 (a `UILabel`) has three groups with 19 attributes in all, covering all 11 members of `AttributeValue` and one attribute whose value is nil (`view.backgroundColor`):
+Layer 3 (a `UILabel`) has three groups with 22 attributes in all, covering 11 of the 12 members of `AttributeValue` and one attribute whose value is nil (`view.backgroundColor`):
 
 | Group | `class_name` | Attributes | Value types |
 |---|---|---|---|
 | `layer` | `CALayer` | 8 | `RectValue` (`frame`, `bounds`), `PointValue`, `DoubleValue` (`shadowOpacity`, `borderWidth`), `SizeValue`, `ColorValue`, `TransformValue` |
-| `label` | `UILabel` | 4 | `StringValue`, `DoubleValue` (`fontSize`), `IntValue`, `EnumValue` |
-| `view` | `UIView` | 7 | `IntValue` (`tag`), `BoolValue` (`isHidden`, `isUserInteractionEnabled`), `DoubleValue` (`alpha`), nil (`backgroundColor`), `ColorValue` (`tintColor`), `InsetsValue` |
+| `label` | `UILabel` | 6 | `StringValue` (`text`, `fontTextStyle`), `DoubleValue` (`fontSize`), `BoolValue` (`adjustsFontForContentSizeCategory`), `IntValue`, `EnumValue` |
+| `view` | `UIView` | 8 | `IntValue` (`tag`), `BoolValue` (`isHidden`, `isUserInteractionEnabled`), `DoubleValue` (`alpha`), nil (`backgroundColor`), `ColorValue` (`tintColor`), `InsetsValue`, `StringValue` (`accessibilityLabel`) |
 
 Layer 3 backs a view, so it has `view.isHidden`, `view.alpha` and `view.backgroundColor` and not `layer.hidden`, `layer.opacity` and `layer.backgroundColor` (P-ATTR-11).
 
-Layer 4 has both a `solo` and a `group` image, and no attributes were requested. Layer 99 does not exist; its `status` is `LayerNotFound`.
+Layer 4 has both a `solo` and a `group` image, and no attributes were requested. Layer 99 does not exist; its `status` is `LayerNotFound`. Layer 6 (a `UIScrollView`) was asked for attributes only, and has the twelfth member, `LayerReferenceValue` (1.2, P-ATTR-18), in two read-only attributes:
+
+| Attribute | Section | `references` |
+|---|---|---|
+| `scrollView.delegate` (group `scrollView`, `UIScrollView`) | `Content` | One entry: layer 2, `Demo.HomeViewController` (`HomeViewController`): the view controller, by the layer of its root view |
+| `view.gestureRecognizers` (group `view`, `UIView`) | `Behavior` | Two entries with `layer_id` 0, which are not views: `UIScrollViewDelayedTouchesBeganGestureRecognizer`, `UIScrollViewPanGestureRecognizer` |
 
 ## The `layer-details-edge` scenario
 
@@ -154,7 +161,7 @@ Every attribute in `layer-details` and `layer-details-edge` carries `editable`, 
 
 ## Sections and limits (1.1)
 
-Every attribute in `layer-details`, `layer-details-edge` and `set-attribute` carries a `section` (P-ATTR-08): `view.tag` is `Identity`; `layer.frame`, `layer.bounds`, `layer.position`, `layer.transform` and `view.layoutMargins` are `Layout`; the attributes of the `label` group are `Content`; `view.isUserInteractionEnabled` is `Behavior`; all others are `Appearance`. No fixture uses `General`. As with editing fields, the assignment is the Server's; the fixtures are only an example.
+Every attribute in `layer-details`, `layer-details-edge` and `set-attribute` carries a `section` (P-ATTR-08): `view.tag` is `Identity`; `layer.frame`, `layer.bounds`, `layer.position`, `layer.transform` and `view.layoutMargins` are `Layout`; the attributes of the `label` group are `Content`; `view.isUserInteractionEnabled` is `Behavior`; `view.accessibilityLabel` is `Accessibility` (1.2); the attributes of the `scrollView` group are `Content`, and `view.gestureRecognizers` is `Behavior`; all others are `Appearance`. No fixture uses `General`. As with editing fields, the assignment is the Server's; the fixtures are only an example.
 
 | Attribute | `limits` (P-ATTR-09, 10) |
 |---|---|
@@ -172,7 +179,7 @@ No other attribute has limits: colors, booleans, strings and enums never do, and
 | 3 | `geometry` | `frame` `layer.frame`, `bounds` `layer.bounds`, `position` `layer.position`, `transform` `layer.transform` |
 | 3 | `shadow` | `opacity` `layer.shadowOpacity`, `offset` `layer.shadowOffset` |
 | 3 | `border` | `width` `layer.borderWidth`, `color` `layer.borderColor` |
-| 3 | `font` | `size` `label.fontSize` (no `name`: every slot is optional) |
+| 3 | `font` | `size` `label.fontSize`, `textStyle` `label.fontTextStyle`, `scalable` `label.adjustsFontForContentSizeCategory` (no `name`: every slot is optional; the last two slots are 1.2's) |
 | 3 | `lines` | `count` `label.numberOfLines` |
 | 3 | `visibility` | `hidden` `view.isHidden`, `opacity` `view.alpha` |
 | 4 | `corners` | `radius` `layer.cornerRadius`, `clip` `view.clipsToBounds`: one cluster across two groups |
@@ -182,13 +189,13 @@ No other attribute has limits: colors, booleans, strings and enums never do, and
 
 `unit` (P-ATTR-14) is `Fraction` for `view.alpha`, `layer.opacity` and `layer.shadowOpacity`, `Points` for the other lengths (`frame`, `bounds`, `position`, `shadowOffset`, `borderWidth`, `cornerRadius`, `fontSize`, `layoutMargins`), and `Unspecified` for the rest, including `layer.transform`.
 
-On layer 3, `layer.borderWidth` and `layer.shadowOpacity` are 0, so `layer.borderColor` has `inactive_cause` `layer.borderWidth` and `layer.shadowOffset` has `layer.shadowOpacity` (P-ATTR-13). Layer 3's `view.tintColor` is `systemBlue`, (0, 0.47843137, 1, 1) in sRGB, with `system_name` `systemBlue` (P-ATTR-15); `layer.borderColor` is a `CGColor` and has none.
+On layer 3, `layer.borderWidth` and `layer.shadowOpacity` are 0, so `layer.borderColor` has `inactive_cause` `layer.borderWidth` and `layer.shadowOffset` has `layer.shadowOpacity` (P-ATTR-13). Layer 3's `view.tintColor` is `systemBlue`, (0, 0.47843137, 1, 1) in sRGB, with `system_name` `systemBlue` (P-ATTR-15); `layer.borderColor` is a `CGColor` and has none. `view.tintColor` is a dynamic color: its `light` is the same as `value`, and its `dark` is (0.039215688, 0.5176471, 1, 1) (1.2, P-ATTR-17). The color layer 4's `view.backgroundColor` is set to in `set-attribute` is not dynamic, and has neither.
 
 ## The `set-attribute` scenario
 
 | Request | Layer | Attribute | Value written | Change in the reply |
 |---|---|---|---|---|
-| 1 | 3 | `label.text` | `"Welcome back"` | The text changed; the rest is the same as layer 3's attributes in `layer-details` |
+| 1 | 3 | `label.text` | `"Welcome back"` | The text changed; the rest is the same as layer 3's attributes in `layer-details`, the attributes of 1.2 included |
 | 2 | 3 | `label.textAlignment` | An `EnumValue` with only `value` 2 | The case becomes `right` |
 | 3 | 4 | `view.backgroundColor` | From nil to (0.2, 0.4, 0.8, 1) | |
 | 4 | 4 | `view.alpha` | 0.5 | |
@@ -212,6 +219,30 @@ Layer 4's attributes appear only in this scenario: the `layer` group has `layer.
 ## The `subtree` scenario
 
 Getting the subtree of node 4 replies with nodes 4 and 5, exactly as in the `hierarchy` scenario; node 4's `parent_id` is still 2, and `key_window_id` is 1. Getting layer 99, which does not exist, replies with `LayerNotFound`.
+
+## The `environment` scenarios (1.2)
+
+Traits are written as appearance, content size category, layout direction, horizontal and vertical size classes. Without overrides, the key window's traits are Light, Large, LeftToRight, Compact, Regular (an iPhone in portrait).
+
+`environment`, a Server on iOS 17 or later, which can override all five kinds:
+
+| Request | Message | `overrides` asked for | Reply: `overrides` | Reply: `current` |
+|---|---|---|---|---|
+| 1 | `GetEnvironment` | | None | Light, Large, LeftToRight, Compact, Regular |
+| 2 | `SetEnvironment` | Dark, AccessibilityLarge, RightToLeft | The same | Dark, AccessibilityLarge, RightToLeft, Compact, Regular |
+| 3 | `SetEnvironment` | Dark | Dark: the other two are no longer overridden (P-ENV-02) | Dark, Large, LeftToRight, Compact, Regular |
+| 4 | `SetEnvironment` | No `overrides` | None: all removed | Light, Large, LeftToRight, Compact, Regular |
+
+`environment-rejected`, a Server before iOS 17, whose `overridable` is `UserInterfaceStyle` only:
+
+| Request | Message | Reply |
+|---|---|---|
+| 1 | `GetEnvironment` | No overrides |
+| 2 | `SetEnvironment` with Dark and RightToLeft | `Error` `NotSupported`: the layout direction cannot be overridden, and the appearance is not changed either (P-ENV-04) |
+| 3 | `GetEnvironment` | Still no overrides |
+| — | `AppStateChanged` (`request_id` 0) | `Background` |
+| 4 | `SetEnvironment` with Dark | `Error` `AppNotActive` (P-APP-01) |
+| 5 | `GetEnvironment` | Still no overrides: `GetEnvironment` is answered in the background |
 
 ## The `layout-constraints` scenario (0.4; constraints 8 to 11 changed to the shapes UIKit actually uses in 0.5)
 

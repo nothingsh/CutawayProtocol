@@ -579,6 +579,64 @@
       {
         "layer_id": 99,
         "status": "LayerNotFound"
+      },
+      {
+        "layer_id": 6,
+        "attribute_groups": [
+          {
+            "id": "scrollView",
+            "title": "Scroll View",
+            "attributes": [
+              {
+                "id": "scrollView.delegate",
+                "title": "Delegate",
+                "value_type": "LayerReferenceValue",
+                "value": {
+                  "references": [
+                    {
+                      "layer_id": 2,
+                      "class_name": "Demo.HomeViewController",
+                      "display_class_name": "HomeViewController"
+                    }
+                  ]
+                },
+                "editable": false,
+                "accepts_nil": false,
+                "value_kind": "LayerReferenceValue",
+                "section": "Content"
+              }
+            ],
+            "class_name": "UIScrollView"
+          },
+          {
+            "id": "view",
+            "title": "View",
+            "attributes": [
+              {
+                "id": "view.gestureRecognizers",
+                "title": "Gesture Recognizers",
+                "value_type": "LayerReferenceValue",
+                "value": {
+                  "references": [
+                    {
+                      "class_name": "UIScrollViewDelayedTouchesBeganGestureRecognizer",
+                      "display_class_name": "UIScrollViewDelayedTouchesBeganGestureRecognizer"
+                    },
+                    {
+                      "class_name": "UIScrollViewPanGestureRecognizer",
+                      "display_class_name": "UIScrollViewPanGestureRecognizer"
+                    }
+                  ]
+                },
+                "editable": false,
+                "accepts_nil": false,
+                "value_kind": "LayerReferenceValue",
+                "section": "Behavior"
+              }
+            ],
+            "class_name": "UIView"
+          }
+        ]
       }
     ]
   }
