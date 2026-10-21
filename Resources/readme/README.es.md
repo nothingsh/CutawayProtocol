@@ -14,9 +14,11 @@
 
 # Cutaway Protocol
 
-El protocolo de comunicación entre **[CutawayServer](https://github.com/nothingsh/CutawayServer)**, un SDK de iOS integrado en la app que se inspecciona, y **[Cutaway](https://github.com/nothingsh/Cutaway)**, una app de macOS. Cutaway se conecta al servidor por TCP y obtiene la jerarquía de capas de la app, capturas de pantalla, atributos y restricciones de Auto Layout, y puede modificar atributos mientras la app se ejecuta.
+El protocolo de comunicación entre **[CutawayServer](https://github.com/nothingsh/CutawayServer)**, un SDK de iOS integrado en la app que se inspecciona, y **[Cutaway](https://github.com/nothingsh/Cutaway)**, una app de macOS. Cutaway se conecta al servidor por TCP y obtiene la jerarquía de capas de la app, capturas de pantalla, atributos y restricciones de Auto Layout, y puede modificar atributos y sobrescribir el entorno de rasgos (trait environment) de la app mientras se ejecuta.
 
 Este repositorio es la única fuente de verdad de ese protocolo. No contiene código Swift: ambos extremos fijan una etiqueta de este repositorio como submódulo de git y generan su código a partir del schema.
+
+El [sitio web de Cutaway](https://nothingsh.github.io/Cutaway/protocol/) tiene una guía del protocolo (en inglés): una [introducción](https://nothingsh.github.io/Cutaway/protocol/), [qué versiones funcionan juntas](https://nothingsh.github.io/Cutaway/protocol/versions), [cómo implementar un extremo](https://nothingsh.github.io/Cutaway/protocol/implementing) y la [especificación](https://nothingsh.github.io/Cutaway/protocol/spec), generada a partir del `PROTOCOL.md` de este repositorio.
 
 <a id="contents"></a>
 ## Contenido
@@ -37,7 +39,7 @@ Este repositorio es la única fuente de verdad de ese protocolo. No contiene có
 - **Transporte.** El servidor escucha por TCP, solo en loopback, probando los puertos del 48160 al 48167 en orden. Un simulador comparte el loopback del Mac; a un dispositivo conectado por USB se llega a través de usbmuxd de macOS, del que el servidor no sabe nada. Un solo cliente a la vez.
 - **Entramado.** Una trama es una longitud `N` de 4 bytes en little-endian seguida de `N` bytes que contienen un FlatBuffer ordinario con tipo raíz `Frame` e identificador de archivo `CTWY`. **No** es el formato con prefijo de tamaño de FlatBuffers; los fixtures `.stream` muestran los bytes exactos. `N` no puede superar 256 MiB, y el receptor verifica el búfer completo antes de leer cualquier campo.
 - **Handshake.** La primera trama del cliente es `Hello`; el servidor responde siempre con su propio `Hello`. Las versiones mayores deben coincidir; de lo contrario, ambos lados cierran la conexión. Cuando las versiones menores difieren, ambos lados trabajan con la más baja.
-- **Peticiones.** El cliente asigna un `request_id` monótonamente creciente. Las peticiones ordinarias (`GetAppIcon`, `GetHierarchy`, `GetSubtree`, `SetAttribute`) reciben exactamente una respuesta. `GetLayerDetails` es un flujo: cero o más tramas `LayerDetailsChunk` y, después, un `StreamEnd`. `Cancel` termina un flujo de forma anticipada y no tiene respuesta propia. El servidor atiende las peticiones en orden.
+- **Peticiones.** El cliente asigna un `request_id` monótonamente creciente. Las peticiones ordinarias (`GetAppIcon`, `GetHierarchy`, `GetSubtree`, `SetAttribute` y, desde 1.2, `GetEnvironment` y `SetEnvironment`) reciben exactamente una respuesta. `GetLayerDetails` es un flujo: cero o más tramas `LayerDetailsChunk` y, después, un `StreamEnd`. `Cancel` termina un flujo de forma anticipada y no tiene respuesta propia. El servidor atiende las peticiones en orden.
 - **Eventos.** El servidor envía `AppStateChanged` con `request_id` 0 después del handshake y cada vez que cambia el estado activo de la app.
 - **Errores.** `Error` incluye un `ErrorCode` estable y un mensaje legible por humanos. Los clientes deciden en función del código, nunca del texto.
 
@@ -46,7 +48,7 @@ Cada regla anterior es una cláusula de `PROTOCOL.md`; esta lista solo sirve de 
 <a id="versioning-and-evolution"></a>
 ## Versionado y evolución
 
-La versión del protocolo es `MAJOR.MINOR` en `PROTOCOL_VERSION`; las publicaciones se etiquetan como `vMAJOR.MINOR.PATCH`. El schema evoluciona solo por adición: campos al final de las tablas, miembros al final de los enums y las uniones. Los structs, el identificador de archivo y el tipo raíz nunca cambian. Cualquier otro cambio supone subir la versión mayor. Una publicación `PATCH` cambia la redacción o los fixtures sin tocar el schema. Las reglas completas son las cláusulas `P-EVO` de `PROTOCOL.md`.
+La versión del protocolo es `MAJOR.MINOR` en `PROTOCOL_VERSION`; las publicaciones se etiquetan como `vMAJOR.MINOR.PATCH`. El schema evoluciona solo por adición: campos al final de las tablas, miembros al final de los enums y las uniones. Los structs, el identificador de archivo y el tipo raíz nunca cambian. Cualquier otro cambio supone subir la versión mayor. Una publicación `PATCH` cambia la redacción o los fixtures sin tocar el schema. Mientras una versión menor está en desarrollo se etiqueta como `vMAJOR.MINOR.0-dev.N`; esas etiquetas son solo para desarrollo, y un extremo que se publica fija una etiqueta de publicación. Las reglas completas son las cláusulas `P-EVO` de `PROTOCOL.md`.
 
 El protocolo está **congelado en 1.0**. A partir de ahora el esquema solo crece añadiendo, en versiones menores. La 1.0 subió la versión mayor respecto a la 0.5: un extremo 0.x y uno 1.x fallan el handshake por diseño.
 

@@ -14,9 +14,11 @@
 
 # Cutaway Protocol
 
-검사 대상 앱에 내장되는 iOS SDK인 **[CutawayServer](https://github.com/nothingsh/CutawayServer)**와 macOS 앱인 **[Cutaway](https://github.com/nothingsh/Cutaway)** 사이의 통신 프로토콜입니다. Cutaway는 TCP로 서버에 접속하여 앱의 레이어 계층 구조, 스크린샷, 속성, Auto Layout 제약 조건을 가져오며, 앱이 실행되는 동안 속성을 수정할 수도 있습니다.
+검사 대상 앱에 내장되는 iOS SDK인 **[CutawayServer](https://github.com/nothingsh/CutawayServer)**와 macOS 앱인 **[Cutaway](https://github.com/nothingsh/Cutaway)** 사이의 통신 프로토콜입니다. Cutaway는 TCP로 서버에 접속하여 앱의 레이어 계층 구조, 스크린샷, 속성, Auto Layout 제약 조건을 가져오며, 앱이 실행되는 동안 속성을 수정하거나 앱의 트레이트 환경을 재정의할 수도 있습니다.
 
 이 저장소는 해당 프로토콜의 유일한 기준(single source of truth)입니다. Swift 코드는 포함하지 않습니다. 양쪽 모두 이 저장소의 태그를 git submodule로 고정하고 schema에서 각자의 코드를 생성합니다.
+
+[Cutaway 웹사이트](https://nothingsh.github.io/Cutaway/protocol/)에 프로토콜 가이드(영어)가 있습니다. [개요](https://nothingsh.github.io/Cutaway/protocol/), [함께 동작하는 릴리스](https://nothingsh.github.io/Cutaway/protocol/versions), [피어 구현하기](https://nothingsh.github.io/Cutaway/protocol/implementing), 그리고 이 저장소의 `PROTOCOL.md`로 만든 [명세](https://nothingsh.github.io/Cutaway/protocol/spec)입니다.
 
 <a id="contents"></a>
 ## 구성
@@ -37,7 +39,7 @@
 - **전송.** 서버는 루프백 전용으로 TCP에서 수신 대기하며, 포트 48160부터 48167까지 순서대로 시도합니다. 시뮬레이터는 Mac의 루프백을 공유하고, USB로 연결된 기기는 macOS의 usbmuxd를 통해 접근하는데, 서버는 이에 대해 전혀 알지 못합니다. 한 번에 하나의 클라이언트만 연결할 수 있습니다.
 - **프레이밍.** 프레임은 4바이트 리틀 엔디언 길이 `N`과 그 뒤를 잇는 `N`바이트로 구성되며, 이 `N`바이트에는 루트 타입이 `Frame`이고 파일 식별자가 `CTWY`인 일반 FlatBuffer 하나가 담깁니다. 이는 FlatBuffers의 size-prefixed 형식이 **아닙니다**. 정확한 바이트는 `.stream` 픽스처에서 확인할 수 있습니다. `N`은 256 MiB를 초과할 수 없으며, 수신 측은 어떤 필드든 읽기 전에 버퍼 전체를 검증합니다.
 - **핸드셰이크.** 클라이언트의 첫 프레임은 `Hello`이며, 서버는 항상 자신의 `Hello`로 응답합니다. 메이저 버전이 일치해야 하며, 일치하지 않으면 양쪽 모두 연결을 닫습니다. 마이너 버전이 다르면 양쪽 모두 더 낮은 버전으로 동작합니다.
-- **요청.** 클라이언트는 단조 증가하는 `request_id`를 할당합니다. 일반 요청(`GetAppIcon`, `GetHierarchy`, `GetSubtree`, `SetAttribute`)은 정확히 하나의 응답을 받습니다. `GetLayerDetails`는 스트림으로, 0개 이상의 `LayerDetailsChunk` 프레임 뒤에 `StreamEnd` 하나가 옵니다. `Cancel`은 스트림을 조기에 종료하며 그 자체에 대한 응답은 없습니다. 서버는 요청을 순서대로 처리합니다.
+- **요청.** 클라이언트는 단조 증가하는 `request_id`를 할당합니다. 일반 요청(`GetAppIcon`, `GetHierarchy`, `GetSubtree`, `SetAttribute`, 1.2부터 `GetEnvironment`와 `SetEnvironment`)은 정확히 하나의 응답을 받습니다. `GetLayerDetails`는 스트림으로, 0개 이상의 `LayerDetailsChunk` 프레임 뒤에 `StreamEnd` 하나가 옵니다. `Cancel`은 스트림을 조기에 종료하며 그 자체에 대한 응답은 없습니다. 서버는 요청을 순서대로 처리합니다.
 - **이벤트.** 서버는 핸드셰이크 직후와 앱의 활성 상태가 바뀔 때마다 `request_id` 0으로 `AppStateChanged`를 보냅니다.
 - **오류.** `Error`는 안정적인 `ErrorCode`와 사람이 읽을 수 있는 메시지를 담습니다. 클라이언트는 텍스트가 아니라 반드시 코드를 기준으로 분기해야 합니다.
 
@@ -46,7 +48,7 @@
 <a id="versioning-and-evolution"></a>
 ## 버전 관리와 진화
 
-프로토콜 버전은 `PROTOCOL_VERSION`에 기록된 `MAJOR.MINOR`이며, 릴리스에는 `vMAJOR.MINOR.PATCH` 태그를 붙입니다. schema는 추가만으로 진화합니다. 즉, 테이블의 끝에 필드를, enum과 union의 끝에 멤버를 추가하는 것만 허용됩니다. struct, 파일 식별자, 루트 타입은 절대 바뀌지 않습니다. 그 밖의 모든 변경은 메이저 버전을 올려야 합니다. `PATCH` 릴리스는 schema를 건드리지 않고 문구나 픽스처만 변경합니다. 전체 규칙은 `PROTOCOL.md`의 `P-EVO` 조항에 있습니다.
+프로토콜 버전은 `PROTOCOL_VERSION`에 기록된 `MAJOR.MINOR`이며, 릴리스에는 `vMAJOR.MINOR.PATCH` 태그를 붙입니다. schema는 추가만으로 진화합니다. 즉, 테이블의 끝에 필드를, enum과 union의 끝에 멤버를 추가하는 것만 허용됩니다. struct, 파일 식별자, 루트 타입은 절대 바뀌지 않습니다. 그 밖의 모든 변경은 메이저 버전을 올려야 합니다. `PATCH` 릴리스는 schema를 건드리지 않고 문구나 픽스처만 변경합니다. 개발 중인 마이너 버전에는 `vMAJOR.MINOR.0-dev.N` 태그를 붙입니다. 이 태그는 개발용일 뿐이며, 배포하는 피어는 정식 릴리스 태그에 고정합니다. 전체 규칙은 `PROTOCOL.md`의 `P-EVO` 조항에 있습니다.
 
 프로토콜은 **1.0으로 동결되었습니다**. 이제 스키마는 마이너 버전에서 추가하는 방식으로만 확장됩니다. 1.0은 0.5에서 메이저 버전을 올린 것이므로, 0.x 피어와 1.x 피어는 설계상 핸드셰이크에 실패합니다.
 

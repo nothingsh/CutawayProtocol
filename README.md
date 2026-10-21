@@ -12,9 +12,11 @@
 
 # Cutaway Protocol
 
-The wire protocol between **[CutawayServer](https://github.com/nothingsh/CutawayServer)**, an iOS SDK embedded in the app being inspected, and **[Cutaway](https://github.com/nothingsh/Cutaway)**, a macOS app. Cutaway connects to the server over TCP and retrieves the app's layer hierarchy, screenshots, attributes and Auto Layout constraints, and can modify attributes while the app runs.
+The wire protocol between **[CutawayServer](https://github.com/nothingsh/CutawayServer)**, an iOS SDK embedded in the app being inspected, and **[Cutaway](https://github.com/nothingsh/Cutaway)**, a macOS app. Cutaway connects to the server over TCP and retrieves the app's layer hierarchy, screenshots, attributes and Auto Layout constraints, and can modify attributes and override the app's trait environment while the app runs.
 
 This repository is the single source of truth for that protocol. It contains no Swift code: both ends pin a tag of this repository as a git submodule and generate their code from the schema.
+
+The [Cutaway website](https://nothingsh.github.io/Cutaway/protocol/) has a guide to the protocol: an [overview](https://nothingsh.github.io/Cutaway/protocol/), [which releases work together](https://nothingsh.github.io/Cutaway/protocol/versions), [implementing a peer](https://nothingsh.github.io/Cutaway/protocol/implementing), and the [specification](https://nothingsh.github.io/Cutaway/protocol/spec), rendered from this repository's `PROTOCOL.md`.
 
 ## Contents
 
@@ -33,7 +35,7 @@ This repository is the single source of truth for that protocol. It contains no 
 - **Transport.** The server listens on TCP, loopback only, trying ports 48160 through 48167 in order. A simulator shares the Mac's loopback; a USB-connected device is reached through macOS's usbmuxd, which the server knows nothing about. One client at a time.
 - **Framing.** A frame is a 4-byte little-endian length `N` followed by `N` bytes holding one ordinary FlatBuffer with root type `Frame` and file identifier `CTWY`. This is **not** FlatBuffers' size-prefixed format; the `.stream` fixtures show the exact bytes. `N` may not exceed 256 MiB, and a receiver verifies the whole buffer before reading any field.
 - **Handshake.** The client's first frame is `Hello`; the server always answers with its own `Hello`. Major versions must match, or both sides close. When minor versions differ, both sides work at the lower one.
-- **Requests.** The client assigns a monotonically increasing `request_id`. Ordinary requests (`GetAppIcon`, `GetHierarchy`, `GetSubtree`, `SetAttribute`) get exactly one response. `GetLayerDetails` is a stream: zero or more `LayerDetailsChunk` frames, then one `StreamEnd`. `Cancel` ends a stream early and has no response of its own. The server handles requests in order.
+- **Requests.** The client assigns a monotonically increasing `request_id`. Ordinary requests (`GetAppIcon`, `GetHierarchy`, `GetSubtree`, `SetAttribute`, and since 1.2 `GetEnvironment` and `SetEnvironment`) get exactly one response. `GetLayerDetails` is a stream: zero or more `LayerDetailsChunk` frames, then one `StreamEnd`. `Cancel` ends a stream early and has no response of its own. The server handles requests in order.
 - **Events.** The server sends `AppStateChanged` with `request_id` 0 after the handshake and whenever the app's active state changes.
 - **Errors.** `Error` carries a stable `ErrorCode` and a human-readable message. Clients branch on the code, never on the text.
 
@@ -41,7 +43,7 @@ Every rule above is a clause in `PROTOCOL.md`; this list is only an orientation.
 
 ## Versioning and evolution
 
-The protocol version is `MAJOR.MINOR` in `PROTOCOL_VERSION`; releases are tagged `vMAJOR.MINOR.PATCH`. The schema evolves by appending only: fields at the end of tables, members at the end of enums and unions. Structs, the file identifier and the root type never change. Anything else is a major version bump. A `PATCH` release changes wording or fixtures without touching the schema. The full rules are the `P-EVO` clauses in `PROTOCOL.md`.
+The protocol version is `MAJOR.MINOR` in `PROTOCOL_VERSION`; releases are tagged `vMAJOR.MINOR.PATCH`. The schema evolves by appending only: fields at the end of tables, members at the end of enums and unions. Structs, the file identifier and the root type never change. Anything else is a major version bump. A `PATCH` release changes wording or fixtures without touching the schema. While a minor version is in development it is tagged `vMAJOR.MINOR.0-dev.N`; those tags are for development only, and a shipping peer pins a release tag. The full rules are the `P-EVO` clauses in `PROTOCOL.md`.
 
 The protocol is **frozen at 1.0**. From here on the schema only grows by appending, in minor versions. 1.0 was a major version bump from 0.5: a 0.x peer and a 1.x peer fail the handshake by design.
 
