@@ -1,0 +1,469 @@
+// Cutaway wire protocol. PROTOCOL.md is the normative description;
+// this file defines the payload of every frame.
+//
+// Evolution rules (PROTOCOL.md, section "Evolution"):
+//   - Only append fields to tables. Never change a field's type, reuse or remove it.
+//   - Only append values to enums and members to unions.
+//   - Structs never change.
+//   - An appended field's default means the behaviour from before it was added,
+//     and ignoring it must not change how other fields read (P-EVO-06, 07).
+//   - What the handshake needs never changes, in any major version (P-EVO-05):
+//     the file identifier, the root type, Body's members Hello to Error, and the
+//     existing members of Frame, Hello, Version, Role, ClientInfo, AppInfo,
+//     DeviceKind, Size, Error and ErrorCode.
+
+namespace Cutaway.Wire;
+
+file_identifier "CTWY";
+
+// ---- Geometry (structs are fixed forever) ----
+
+struct Point { x: double; y: double; }
+struct Size { width: double; height: double; }
+struct Rect { origin: Point; size: Size; }
+struct Insets { top: double; left: double; bottom: double; right: double; }
+struct Color { red: float; green: float; blue: float; alpha: float; }
+
+// Row-major 4x4 matrix with the same layout as CATransform3D.
+struct Transform3D {
+  m11: double; m12: double; m13: double; m14: double;
+  m21: double; m22: double; m23: double; m24: double;
+  m31: double; m32: double; m33: double; m34: double;
+  m41: double; m42: double; m43: double; m44: double;
+}
+
+struct Version { major: ushort; minor: ushort; }
+
+// ---- Enums ----
+
+enum Role : ubyte { Client = 0, Server = 1 }
+
+enum ErrorCode : ushort {
+  Unknown = 0,
+  MalformedFrame = 1,
+  UnexpectedMessage = 2,
+  Busy = 3,
+  AppNotActive = 4,
+  Internal = 5,
+  // 0.3
+  LayerNotFound = 6,
+  AttributeNotEditable = 7,
+  InvalidAttributeValue = 8,
+  // 1.2
+  NotSupported = 9
+}
+
+enum StreamStatus : ubyte { Completed = 0, Cancelled = 1, Failed = 2 }
+
+enum AppState : ubyte { Active = 0, Inactive = 1, Background = 2 }
+
+enum DeviceKind : ubyte { Unknown = 0, Phone = 1, Pad = 2, Mac = 3 }
+
+enum ImageEncoding : ubyte { Bgra8PremultipliedLzfse = 0 }
+
+enum DetailStatus : ubyte {
+  Ok = 0, LayerNotFound = 1, CaptureFailed = 2,
+  // 1.2: the host app excludes this node from images (P-DET-10)
+  Excluded = 3
+}
+
+// ---- Handshake ----
+
+table ClientInfo {
+  name: string;
+  version: string;
+}
+
+table AppInfo {
+  name: string;
+  bundle_id: string;
+  app_version: string;
+  device_name: string;
+  device_kind: DeviceKind;
+  is_simulator: bool;
+  os_name: string;
+  os_version: string;
+  screen_size: Size;
+  screen_scale: float;
+  server_version: string;
+}
+
+table Hello {
+  protocol: Version;
+  role: Role;
+  client: ClientInfo;   // set when role is Client
+  app: AppInfo;         // set when role is Server
+}
+
+// ---- Images ----
+
+table Image {
+  encoding: ImageEncoding;
+  pixel_width: uint;
+  pixel_height: uint;
+  bytes_per_row: uint;   // of the decompressed pixel data
+  scale: float;          // pixels per point
+  data: [ubyte];
+}
+
+table GetAppIcon {}
+
+table AppIcon {
+  image: Image;          // absent when the app has no icon
+}
+
+// ---- Hierarchy ----
+
+// 1.1: where a class, or a constraint, comes from (P-HIER-16, P-LAYOUT-09). Unknown means absent.
+enum Origin : ubyte { Unknown = 0, System = 1, App = 2 }
+
+// 1.1: whether a view controller is shown (P-HIER-18). Unknown means absent.
+enum ViewControllerVisibility : ubyte { Unknown = 0, Shown = 1, NotShown = 2 }
+
+// 1.2: what a hierarchy node stands for (P-HIER-19).
+enum NodeKind : ubyte { Layer = 0, Virtual = 1 }
+
+// 0.2: an instance variable that holds the layer, or the view the layer backs.
+table MemberReference {
+  owner_class_name: string;          // runtime name of the class that declares the variable
+  owner_display_class_name: string;  // human-readable name of that class
+  name: string;                      // the variable's name as declared
+}
+
+table LayerNode {
+  id: ulong;
+  parent_id: ulong;              // 0 for a window's root layer
+  class_name: string;            // runtime name of the layer's class
+  display_class_name: string;    // human-readable name of the layer's class
+  view_class_name: string;       // set when the layer backs a view
+  view_display_class_name: string;
+  bounds: Rect;
+  position: Point;
+  anchor_point: Point;
+  transform: Transform3D;
+  z_position: double;
+  hidden: bool;
+  opacity: float;
+  masks_to_bounds: bool;
+  // 0.2
+  view_controller_class_name: string;  // set when the layer backs a view controller's root view
+  view_controller_display_class_name: string;
+  member_references: [MemberReference]; // nearest holder first
+  // 1.1: addresses in the app's process when the hierarchy was captured; 0 when absent.
+  // For display only: an address can be reused once its object is released (P-HIER-15).
+  layer_address: ulong;
+  view_address: ulong;              // set when the layer backs a view
+  view_controller_address: ulong;   // set when view_controller_class_name is
+  // 1.1: where each class comes from (P-HIER-16); set exactly when its class name is.
+  layer_class_origin: Origin;
+  view_class_origin: Origin;
+  view_controller_class_origin: Origin;
+  // 1.1: the nearest class in the protocol's tables of known classes (P-HIER-17).
+  layer_base_class_name: string;
+  view_base_class_name: string;     // only when the layer backs a view
+  // 1.1: set exactly when view_controller_class_name is (P-HIER-18).
+  view_controller_visibility: ViewControllerVisibility;
+  // 1.2: a part of the interface the host app draws and describes (P-HIER-19, 20).
+  node_kind: NodeKind;
+  name: string;                     // Virtual only: a short label the host app gives
+  // 1.2: the host app asks that the node start collapsed (P-HIER-23).
+  collapsed_by_default: bool;
+  // 1.2: the host app excludes this node, with its subtree, from images (P-DET-10).
+  capture_excluded: bool;
+}
+
+table GetHierarchy {}
+
+table Hierarchy {
+  // Pre-order. A node's parent always appears before it.
+  // Siblings are ordered back to front: by zPosition, then by their order in sublayers.
+  nodes: [LayerNode];
+  key_window_id: ulong;          // 0 when there is no key window
+}
+
+// ---- Layer details ----
+
+// A table, not a struct: later versions add per-layer options here.
+table LayerDetailRequest {
+  layer_id: ulong;
+  want_solo: bool;
+  want_group: bool;
+  want_attributes: bool;
+  // 0.4
+  want_constraints: bool;
+}
+
+table GetLayerDetails {
+  requests: [LayerDetailRequest];
+  max_texture_dimension: uint;   // in pixels; 0 means no limit
+}
+
+table BoolValue { value: bool; }
+table IntValue { value: long; }
+table DoubleValue { value: double; }
+table StringValue { value: string; }
+table ColorValue {
+  value: Color;
+  // 1.1: the name of the UIKit system color this is, when the Server recognizes it (P-ATTR-15).
+  system_name: string;
+  // 1.2: the value resolved in the light and in the dark appearance; set together,
+  // only when the two differ (P-ATTR-17).
+  light: Color;
+  dark: Color;
+  // 1.2: the name of a color the host app registered that equals this one (P-ATTR-20).
+  name: string;
+}
+table PointValue { value: Point; }
+table SizeValue { value: Size; }
+table RectValue { value: Rect; }
+table InsetsValue { value: Insets; }
+table TransformValue { value: Transform3D; }
+table EnumValue {
+  value: long;
+  cases: [string];               // names of all cases, in declaration order
+  case_name: string;             // name of the current case
+  // 0.3
+  case_values: [long];           // raw value of each case, parallel to cases
+}
+
+// 1.2: one object an attribute refers to (P-ATTR-18).
+table ObjectReference {
+  layer_id: ulong;               // the view's layer, or a view controller's root view's layer; 0 when none
+  class_name: string;            // runtime name of the object's class
+  display_class_name: string;    // human-readable name of that class
+}
+
+// 1.2: a read-only value that refers to other objects, in order (P-ATTR-18).
+table LayerReferenceValue {
+  references: [ObjectReference];
+}
+
+union AttributeValue {
+  BoolValue, IntValue, DoubleValue, StringValue, ColorValue, PointValue,
+  SizeValue, RectValue, InsetsValue, TransformValue, EnumValue,
+  // 1.2
+  LayerReferenceValue
+}
+
+// 0.3: names the members of AttributeValue, with the same numbers as the union's type field.
+// Append to it whenever a member is appended to AttributeValue.
+enum AttributeValueKind : ubyte {
+  None = 0, BoolValue = 1, IntValue = 2, DoubleValue = 3, StringValue = 4, ColorValue = 5,
+  PointValue = 6, SizeValue = 7, RectValue = 8, InsetsValue = 9, TransformValue = 10,
+  EnumValue = 11,
+  // 1.2
+  LayerReferenceValue = 12
+}
+
+// 1.1: which part of an inspector an attribute belongs on (P-ATTR-08).
+enum AttributeSection : ubyte {
+  Unspecified = 0, Identity = 1, General = 2, Layout = 3,
+  Content = 4, Appearance = 5, Behavior = 6,
+  // 1.2
+  Accessibility = 7
+}
+
+// 1.1: how to read the numbers of an attribute's value (P-ATTR-14).
+enum AttributeUnit : ubyte { Unspecified = 0, Points = 1, Fraction = 2 }
+
+// 1.1: the values SetAttribute accepts for one numeric component (P-ATTR-10).
+table NumberLimit {
+  minimum: double;
+  has_minimum: bool;
+  minimum_exclusive: bool;       // the component must be greater than minimum
+  maximum: double;
+  has_maximum: bool;
+  maximum_exclusive: bool;       // the component must be less than maximum
+}
+
+table Attribute {
+  id: string;                    // stable, e.g. "layer.cornerRadius"
+  title: string;
+  value: AttributeValue;         // absent means nil
+  // 0.3
+  editable: bool;                // SetAttribute may change it
+  accepts_nil: bool;             // SetAttribute may set it to nil
+  value_kind: AttributeValueKind; // the member value uses, also when value is absent
+  // 1.1
+  section: AttributeSection;
+  limits: [NumberLimit];         // one for every component, or one per component (P-ATTR-09)
+  cluster: string;               // the compound row this attribute is part of (P-ATTR-12)
+  slot: string;                  // its part in the cluster; set exactly when cluster is
+  inactive_cause: string;        // ID of the attribute that makes this one have no effect now (P-ATTR-13)
+  unit: AttributeUnit;           // (P-ATTR-14)
+}
+
+table AttributeGroup {
+  id: string;                    // stable, e.g. "layer"
+  title: string;
+  attributes: [Attribute];
+  // 1.1: runtime name of the class that declares the group's properties (P-ATTR-16).
+  class_name: string;
+  // 1.2: the group comes from the host app, not the Server's own list (P-ATTR-19).
+  from_app: bool;
+}
+
+table LayerDetail {
+  layer_id: ulong;
+  status: DetailStatus;
+  solo: Image;                   // the layer without its sublayers
+  group: Image;                  // the layer with its whole subtree
+  attribute_groups: [AttributeGroup];
+  // 0.4
+  constraints: [LayoutConstraint];  // set when constraints were requested and the layer backs a view
+}
+
+table LayerDetailsChunk {
+  sequence: uint;                // starts at 0, increases by 1
+  details: [LayerDetail];
+}
+
+// ---- Editing (0.3) ----
+
+table SetAttribute {
+  layer_id: ulong;
+  attribute_id: string;
+  value: AttributeValue;         // absent sets nil
+}
+
+table SetAttributeResult {
+  layer_id: ulong;
+  attribute_groups: [AttributeGroup];  // all groups of the layer, read after the change
+}
+
+table GetSubtree {
+  root_id: ulong;                // answered with Hierarchy
+}
+
+// ---- Layout (0.4) ----
+
+// Same raw values as NSLayoutConstraint.Attribute.
+enum LayoutAttribute : ubyte {
+  NotAnAttribute = 0,
+  Left = 1, Right = 2, Top = 3, Bottom = 4, Leading = 5, Trailing = 6,
+  Width = 7, Height = 8, CenterX = 9, CenterY = 10,
+  LastBaseline = 11, FirstBaseline = 12,
+  LeftMargin = 13, RightMargin = 14, TopMargin = 15, BottomMargin = 16,
+  LeadingMargin = 17, TrailingMargin = 18,
+  CenterXWithinMargins = 19, CenterYWithinMargins = 20,
+  // 0.5: used by UIKit's NSAutoresizingMaskLayoutConstraint; not in the public
+  // NSLayoutConstraint.Attribute, same raw values.
+  MinX = 32, MinY = 33, MaxX = 36, MaxY = 37
+}
+
+enum LayoutRelation : ubyte { Equal = 0, LessThanOrEqual = 1, GreaterThanOrEqual = 2 }
+
+enum LayoutItemKind : ubyte { View = 0, LayoutGuide = 1, Other = 2 }
+
+enum ConstraintStatus : ubyte { Unknown = 0, Satisfied = 1, Unsatisfied = 2 }
+
+// 1.1: which of its owner's guides a layout guide is (P-LAYOUT-04). Unknown means absent.
+enum LayoutGuideKind : ubyte {
+  Unknown = 0, Other = 1, SafeArea = 2, LayoutMargins = 3, ReadableContent = 4, Keyboard = 5
+}
+
+table LayoutItem {
+  kind: LayoutItemKind;
+  layer_id: ulong;               // View: the view's layer; LayoutGuide: the owning view's layer
+  guide_id: ulong;               // LayoutGuide only
+  class_name: string;            // LayoutGuide and Other: runtime name of the item's class
+  display_class_name: string;
+  identifier: string;            // LayoutGuide only: UILayoutGuide.identifier
+  guide_frame: Rect;             // LayoutGuide only: layoutFrame, in the owning view's bounds
+  // 1.1
+  guide_kind: LayoutGuideKind;   // LayoutGuide only
+}
+
+table LayoutConstraint {
+  id: ulong;                     // stable within a connection, like layer IDs
+  class_name: string;            // runtime name, e.g. NSAutoresizingMaskLayoutConstraint
+  identifier: string;            // NSLayoutConstraint.identifier
+  first_item: LayoutItem;
+  first_attribute: LayoutAttribute;
+  relation: LayoutRelation;
+  second_item: LayoutItem;       // absent when the constraint has no second item
+  second_attribute: LayoutAttribute;
+  multiplier: double;
+  constant: double;
+  priority: float;               // 1 to 1000
+  status: ConstraintStatus;      // whether the relation holds in the current layout
+  // 1.1
+  origin: Origin;                // whether UIKit created it (P-LAYOUT-09)
+}
+
+// ---- Environment (1.2) ----
+
+// The trait values the Client may override (P-ENV-01). Unspecified means not overridden,
+// or, in Environment.current, not readable.
+enum UserInterfaceStyle : ubyte { Unspecified = 0, Light = 1, Dark = 2 }
+enum ContentSizeCategory : ubyte {
+  Unspecified = 0, ExtraSmall = 1, Small = 2, Medium = 3, Large = 4,
+  ExtraLarge = 5, ExtraExtraLarge = 6, ExtraExtraExtraLarge = 7,
+  AccessibilityMedium = 8, AccessibilityLarge = 9, AccessibilityExtraLarge = 10,
+  AccessibilityExtraExtraLarge = 11, AccessibilityExtraExtraExtraLarge = 12
+}
+enum LayoutDirection : ubyte { Unspecified = 0, LeftToRight = 1, RightToLeft = 2 }
+enum SizeClass : ubyte { Unspecified = 0, Compact = 1, Regular = 2 }
+enum TraitKind : ubyte {
+  UserInterfaceStyle = 0, ContentSizeCategory = 1, LayoutDirection = 2,
+  HorizontalSizeClass = 3, VerticalSizeClass = 4
+}
+
+table Traits {
+  user_interface_style: UserInterfaceStyle;
+  content_size_category: ContentSizeCategory;
+  layout_direction: LayoutDirection;
+  horizontal_size_class: SizeClass;
+  vertical_size_class: SizeClass;
+}
+
+table GetEnvironment {}         // answered with Environment
+
+table SetEnvironment {
+  overrides: Traits;             // replaces every override; absent or all Unspecified removes them all (P-ENV-02)
+}
+
+table Environment {
+  overrides: Traits;             // what the Client has set on this connection
+  current: Traits;               // the key window's effective traits, overrides included
+  overridable: [TraitKind];      // what this Server can override on this device, each at most once
+}
+
+// ---- Control ----
+
+table Error {
+  code: ErrorCode;
+  message: string;
+}
+
+table StreamEnd {
+  status: StreamStatus;
+  chunk_count: uint;
+  error: Error;                  // set when status is Failed
+}
+
+table Cancel {
+  target_request_id: uint;
+}
+
+table AppStateChanged {
+  state: AppState;
+}
+
+// ---- Frame ----
+
+union Body {
+  Hello, GetAppIcon, AppIcon, GetHierarchy, Hierarchy, GetLayerDetails,
+  LayerDetailsChunk, StreamEnd, Cancel, Error, AppStateChanged,
+  // 0.3
+  SetAttribute, SetAttributeResult, GetSubtree,
+  // 1.2
+  GetEnvironment, SetEnvironment, Environment
+}
+
+table Frame {
+  request_id: uint;              // 0 for the handshake and for events
+  body: Body;
+}
+
+root_type Frame;
