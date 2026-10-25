@@ -1,0 +1,75 @@
+{
+  "request_id": 3,
+  "body_type": "GetLayerDetails",
+  "body": {
+    "requests": [
+      {
+        "layer_id": 3,
+        "want_solo": true,
+        "want_group": true,
+        "want_attributes": false,
+        "known_solo_digest": [
+          9,
+          136,
+          181,
+          224,
+          100,
+          253,
+          207,
+          200,
+          219,
+          178,
+          16,
+          26,
+          42,
+          236,
+          171,
+          89
+        ],
+        "known_group_digest": [
+          9,
+          136,
+          181,
+          224,
+          100,
+          253,
+          207,
+          200,
+          219,
+          178,
+          16,
+          26,
+          42,
+          236,
+          171,
+          89
+        ]
+      },
+      {
+        "layer_id": 8,
+        "want_solo": false,
+        "want_group": true,
+        "want_attributes": false,
+        "known_group_digest": [
+          152,
+          60,
+          148,
+          35,
+          245,
+          62,
+          184,
+          98,
+          64,
+          130,
+          105,
+          173,
+          103,
+          185,
+          100,
+          119
+        ]
+      }
+    ],
+    "max_texture_dimension": 16384
+  }
+}

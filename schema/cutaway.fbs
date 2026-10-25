@@ -104,6 +104,10 @@ table Image {
   bytes_per_row: uint;   // of the decompressed pixel data
   scale: float;          // pixels per point
   data: [ubyte];
+  // 1.3: identifies this image's content on this connection (P-IMG-04)
+  digest: [ubyte];
+  // 1.3: the image is the one whose digest the Client sent; no pixels follow (P-IMG-05)
+  unchanged: bool;
 }
 
 table GetAppIcon {}
@@ -191,6 +195,9 @@ table LayerDetailRequest {
   want_attributes: bool;
   // 0.4
   want_constraints: bool;
+  // 1.3: the digest of the solo / group image the Client holds for this layer (P-DET-11)
+  known_solo_digest: [ubyte];
+  known_group_digest: [ubyte];
 }
 
 table GetLayerDetails {
