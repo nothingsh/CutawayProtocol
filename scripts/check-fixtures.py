@@ -25,6 +25,10 @@ to 05); every constraint has an origin and every layout guide a kind (P-LAYOUT-0
 Each Environment lists each kind once, overrides only what can be overridden, and
 shows the overrides in effect; each SetEnvironment gets the answer P-ENV-01 to 04
 and P-APP-01 call for, and the overrides last until the next one (P-ENV-01, 02).
+Each WatchHierarchy is answered with the state it asked for (P-WATCH-01); a
+HierarchyChanged comes only while notifications are on and the Server may send
+it, and its roots are nodes of the hierarchy, none in another's subtree, and
+empty exactly when whole is true (P-WATCH-02, 03).
 """
 
 import glob
@@ -77,6 +81,28 @@ def check_image(where, image, bounds, digests=None):
                     % (width / scale, height / scale, size["width"], size["height"]))
 
 
+def check_hierarchy_changed(where, frame, body, watching, baseline, nodes):
+    """Checks an event against the hierarchy scenario's nodes, and whether it may be sent at this point."""
+    if frame.get("request_id", 0) != 0:
+        problem(where, "HierarchyChanged must use request_id 0 (P-EVT-01)")
+    if not watching:
+        problem(where, "HierarchyChanged only while notifications are on (P-WATCH-02)")
+    if not baseline:
+        problem(where, "HierarchyChanged only after a GetHierarchy is answered, and not since a successful SetEnvironment (P-WATCH-02)")
+    roots = body.get("roots", [])
+    if body.get("whole", False) == bool(roots):
+        problem(where, "roots is empty exactly when whole is true (P-WATCH-03)")
+    for root in roots:
+        if root not in nodes:
+            problem(where, "root %d is not a node of the hierarchy (P-WATCH-03)" % root)
+            continue
+        parent = nodes[root].get("parent_id", 0)
+        while parent:
+            if parent in roots:
+                problem(where, "root %d lies in the subtree of root %d (P-WATCH-03)" % (root, parent))
+            parent = nodes.get(parent, {}).get("parent_id", 0)
+
+
 PLAIN_RESPONSES = {
     "GetAppIcon": "AppIcon",
     "GetHierarchy": "Hierarchy",
@@ -84,6 +110,7 @@ PLAIN_RESPONSES = {
     "SetAttribute": "SetAttributeResult",
     "GetEnvironment": "Environment",
     "SetEnvironment": "Environment",
+    "WatchHierarchy": "WatchHierarchyResult",
 }
 
 
@@ -531,6 +558,7 @@ def main():
         last_id, requests, streams, plain = 0, {}, {}, {}
         active, overrides, overridable = True, {}, None
         digests = {}
+        watching, baseline = False, False
         for name, frame in frames:
             where = "%s/%s" % (scenario, name)
             direction = name.split("-")[1]
@@ -555,7 +583,13 @@ def main():
                 if kind not in (PLAIN_RESPONSES[asked], "Error"):
                     problem(where, "%s answers a %s (P-REQ-02)" % (kind, asked))
                     continue
-                if asked == "GetSubtree":
+                if asked == "GetHierarchy" and kind == "Hierarchy":
+                    baseline = True
+                elif asked == "WatchHierarchy":
+                    if body.get("enabled", False) != question.get("enabled", False):
+                        problem(where, "enabled must be the state the request asked for (P-WATCH-01)")
+                    watching = body.get("enabled", False)
+                elif asked == "GetSubtree":
                     root = question.get("root_id", 0)
                     wanted = None if root in nodes else "LayerNotFound"
                     if kind == "Hierarchy" and wanted is None:
@@ -584,6 +618,8 @@ def main():
                         if overrides_of(body) != expected:
                             problem(where, "overrides %s, expected %s (P-ENV-01, 02)" % (overrides_of(body), expected))
                         overrides = overrides_of(body)
+                        if asked == "SetEnvironment":
+                            baseline = False
                 elif asked == "SetAttribute":
                     wanted = expected_set_error(question, nodes, attributes)
                     if kind == "SetAttributeResult" and wanted is None:
@@ -597,6 +633,8 @@ def main():
                     if got != wanted:
                         problem(where, "answered with %s, the protocol calls for %s (P-HIER-11, P-SET-03, 07, P-ENV-04, P-APP-01)"
                                 % (got or kind, wanted or PLAIN_RESPONSES[asked]))
+            elif kind == "HierarchyChanged":
+                check_hierarchy_changed(where, frame, body, watching, baseline, nodes)
             elif kind in ("Hello", "AppStateChanged"):
                 if request_id != 0:
                     problem(where, "%s must use request_id 0" % kind)
