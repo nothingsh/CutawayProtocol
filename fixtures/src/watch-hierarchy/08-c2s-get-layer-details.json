@@ -1,0 +1,53 @@
+{
+  "request_id": 5,
+  "body_type": "GetLayerDetails",
+  "body": {
+    "requests": [
+      {
+        "layer_id": 3,
+        "want_group": true,
+        "known_group_digest": [
+          9,
+          136,
+          181,
+          224,
+          100,
+          253,
+          207,
+          200,
+          219,
+          178,
+          16,
+          26,
+          42,
+          236,
+          171,
+          89
+        ]
+      },
+      {
+        "layer_id": 4,
+        "want_group": true,
+        "known_group_digest": [
+          162,
+          157,
+          98,
+          146,
+          52,
+          222,
+          220,
+          218,
+          208,
+          252,
+          61,
+          6,
+          144,
+          181,
+          22,
+          80
+        ]
+      }
+    ],
+    "max_texture_dimension": 16384
+  }
+}

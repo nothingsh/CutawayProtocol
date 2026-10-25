@@ -29,6 +29,9 @@ The payload of every frame is a `Frame`, whose `body` is one of the following me
 | `GetEnvironment` | Client → Server | Gets the overrides of the app's trait environment and its current traits; the response is an `Environment` (1.2) |
 | `SetEnvironment` | Client → Server | Replaces the overrides of the app's trait environment; the response is an `Environment` (1.2) |
 | `Environment` | Server → Client | Response to `GetEnvironment` and `SetEnvironment` (1.2) |
+| `WatchHierarchy` | Client → Server | Turns hierarchy change notifications on or off (1.3) |
+| `WatchHierarchyResult` | Server → Client | Response to `WatchHierarchy` (1.3) |
+| `HierarchyChanged` | Server → Client | Event: part of the hierarchy changed (1.3) |
 
 ## Transport
 
@@ -82,7 +85,7 @@ Because the Server still replies with its own `Hello` when the major versions do
 
 **P-REQ-01** `request_id` is assigned by the Client, starts at 1, and increases monotonically within a connection. Every frame the Client sends (including `Cancel`) takes its own `request_id`. 0 is reserved for the handshake, events, and errors that answer no particular request. This clause binds only the Client: the Server does not check that `request_id` increases, and uses the value it received as is in the corresponding response.
 
-**P-REQ-02** An ordinary request gets exactly one response frame, with the same `request_id` as the request. `GetAppIcon`, `GetHierarchy`, `GetSubtree`, `SetAttribute`, `GetEnvironment` and `SetEnvironment` are ordinary requests. (The last two since 1.2.)
+**P-REQ-02** An ordinary request gets exactly one response frame, with the same `request_id` as the request. `GetAppIcon`, `GetHierarchy`, `GetSubtree`, `SetAttribute`, `GetEnvironment`, `SetEnvironment` and `WatchHierarchy` are ordinary requests. (`GetEnvironment` and `SetEnvironment` since 1.2, `WatchHierarchy` since 1.3.)
 
 **P-REQ-03** The response to a streaming request is zero or more `LayerDetailsChunk` frames followed by exactly one `StreamEnd`, all with the same `request_id` as the request. `sequence` starts at 0 and increases by 1 per chunk. The `chunk_count` of `StreamEnd` must equal the number of chunks sent. `GetLayerDetails` is a streaming request.
 
@@ -104,11 +107,43 @@ P-REQ-09 spares the Server from buffering requests without limit for a Client th
 
 ## Events and app state
 
-**P-EVT-01** Events are sent by the Server on its own initiative, with `request_id` 0. This version has one event: `AppStateChanged`.
+**P-EVT-01** Events are sent by the Server on its own initiative, with `request_id` 0. This version has two events: `AppStateChanged`, and `HierarchyChanged` (P-WATCH-02). (`HierarchyChanged` since 1.3.)
 
 **P-EVT-02** The Server must send the current state once right after a successful handshake, and then every time the state changes.
 
-**P-APP-01** When the app's state is not `Active`, the Server must reply to `GetHierarchy`, `GetSubtree`, `SetAttribute` and `SetEnvironment` with `Error` (code `AppNotActive`), and end `GetLayerDetails` with `StreamEnd` (status `Failed`, code `AppNotActive`). `GetAppIcon` and `GetEnvironment` are not affected by the app's state. (`SetEnvironment` and `GetEnvironment` since 1.2.)
+**P-APP-01** When the app's state is not `Active`, the Server must reply to `GetHierarchy`, `GetSubtree`, `SetAttribute` and `SetEnvironment` with `Error` (code `AppNotActive`), and end `GetLayerDetails` with `StreamEnd` (status `Failed`, code `AppNotActive`). `GetAppIcon`, `GetEnvironment` and `WatchHierarchy` are not affected by the app's state. (`SetEnvironment` and `GetEnvironment` since 1.2, `WatchHierarchy` since 1.3.)
+
+## Hierarchy changes
+
+**P-WATCH-01** `WatchHierarchy` turns hierarchy change notifications on (`enabled` true) or off (`enabled` false) for this connection; they are off when a connection begins. Its response is `WatchHierarchyResult`, whose `enabled` is the state after the request. A request for the state already in effect changes nothing and is answered as usual. `WatchHierarchy` is not affected by the app's state (P-APP-01): notifications may be turned on while the app is not active, and the Server checks once the app is active again (P-WATCH-08). The Client sends `WatchHierarchy` only when the negotiated minor version is at least 1.3. (Since 1.3.)
+
+**P-WATCH-02** `HierarchyChanged` is an event (P-EVT-01). The Server sends it only after it has answered a `WatchHierarchy` that turns notifications on, and not after it has answered one that turns them off; and only once it has answered a `GetHierarchy` on this connection. After it answers a successful `SetEnvironment` (one answered with `Environment`), it sends none until it has answered the next `GetHierarchy`; a rejected `SetEnvironment` changes nothing here. (Since 1.3.)
+
+**P-WATCH-03** `roots` are the nodes whose subtrees changed. Every change the event reports lies in the subtree of one of its roots, the root itself included, and no root lies in the subtree of another; a root need not be the lowest such node. A node appearing or disappearing, moving to another parent, or changing its position among its siblings or its `z_position` is reported on its parent (on both the old and the new parent for a move); any other change of a node's own fields (P-WATCH-07) is reported on the node itself. When the node a change would be reported on is not in the baseline (P-WATCH-06), or does not exist at the time of the check (P-HIER-12), the change is reported on the nearest ancestor that is in the baseline and exists. `whole` true means the Client should get the whole hierarchy again: the Server sends it when no such ancestor exists (for example when a window appears, or the root layer of a window disappears), when the order of the windows or the key window changed, or when it cannot tell where a change lies. When `whole` is true, `roots` is empty; otherwise it is not. A root may be a virtual node. (Since 1.3.)
+
+**P-WATCH-04** Like `AppStateChanged`, a `HierarchyChanged` may come between any two frames, also while requests are outstanding and between the chunks of a stream; it answers no request and does not take part in the order of the responses (P-REQ-06). The response to a request the Client sends after receiving a `HierarchyChanged` reads the app's state no earlier than the check that produced the event. This holds only for requests sent after the event was received, not for those already sent (for example a details stream in progress). (Since 1.3.)
+
+**P-WATCH-05** An event is a hint. The Server may merge changes, delay them, or send `whole` when it cannot tell where they lie. The Client must not rely on receiving an event for every change; getting the hierarchy again by request always works. (Since 1.3.)
+
+**P-WATCH-06** The Server finds changes by checking the hierarchy against a baseline. For each node, the baseline is the state of it the Server last told the Client on this connection: in the response to a `GetHierarchy` or `GetSubtree` that listed it, or, when the node lies in the subtree of a root of a `HierarchyChanged` (in any subtree, when `whole` is true), at the check that produced that event; P-WATCH-09 may also count a state as told. A node that differs from its baseline has changed, and a node with no baseline is new. So a change made while notifications are off is reported in the first check after they are turned on, and the same change is not reported again whether or not the Client gets the hierarchy. (Since 1.3.)
+
+**P-WATCH-07** The changes the Server reports include at least: a layer appearing or disappearing, moving to another parent or changing its position among its siblings, and a change of a layer's `bounds`, `position`, `anchor_point`, `transform`, `z_position`, `hidden`, `opacity` or `masks_to_bounds`. Changes of other fields of `LayerNode` may be reported. When only what a layer draws changed, and none of the above, the Server reports it on a best-effort basis, without guarantee. Changes of virtual nodes are not guaranteed to be reported either. (Since 1.3.)
+
+**P-WATCH-08** Two `HierarchyChanged` on one connection are at least 1 second apart; the Server merges continuous changes, such as those of an animation or of scrolling. The Server does not check while the app is not `Active`. Once notifications are turned on, and when the app becomes `Active` again while they are on, the Server checks once without waiting for activity of the app's own, provided P-WATCH-02 lets it send events at that point. (Since 1.3.)
+
+**P-WATCH-09** The Client must not rely on events to learn of the changes its own `SetAttribute` and `SetEnvironment` bring. After a successful `SetEnvironment`, P-WATCH-02 applies. For `SetAttribute`, the Server tries not to send `HierarchyChanged` for the changes it brings: it may count the state of the window containing the layer (for a virtual node, of its nearest layer ancestor) as told to the Client, from the modification until the check after continuous modifications stop, so changes the app itself makes in that window during that time may go unreported; and the Client may still receive an event for a change it made. (Since 1.3.)
+
+The Client turns notifications on and off by request rather than in the handshake, so that the person can switch them at any time. A 1.2 Server does not know `WatchHierarchy`, and with it the Client has no automatic refresh. When the Client turns notifications off, events the Server sent before answering may still arrive ahead of the answer, and the Client handles them as usual until the answer arrives.
+
+The recommended handling of an event, which the protocol does not specify: for each root, send `GetSubtree`; on `LayerNotFound`, get the root's parent instead, and failing that the whole hierarchy; on `whole`, send `GetHierarchy`. Then compare with the old nodes as after a modification, and get the images again for the roots' subtrees and the `group` of their ancestors. These requests carry the digests of the images the Client holds (P-DET-11), so the images that did not change come back as unchanged images (P-IMG-05), and getting a whole subtree again costs little; this is why the digests and the notifications came in the same version.
+
+The baseline is pieced together from responses given at different times rather than taken at one moment: a `GetSubtree` renews only the nodes in its subtree. A Server can keep, for each node, a signature of its own fields, of its list of children (their IDs and `z_position`) and of its whole subtree, and compare from the root of each window down, skipping a subtree whose signature is unchanged; a change of the list of children is then reported on the parent, and a node new in this check is not in the baseline, so a change below it is reported higher up.
+
+Core Animation applies animations to the presentation layer and sets the model value at once, and the Server reads model values (P-HIER-05), so an animation produces one change, not one per frame. Scrolling is not an animation: a scroll view's `bounds.origin` changes on every frame, so while scrolling the Client receives one event a second, with the scroll view as its root; cells that table and collection views reuse while scrolling change the scroll view's children, and are reported on it too, without other roots. An app that changes model values on every frame (for example a scene driven by `CADisplayLink`) likewise produces one event a second, rooted at that scene's layer. The Client may choose not to follow events in these cases.
+
+Redrawing usually draws into the layer's existing backing store, so what a layer draws can change without any field the Server reads changing: for example, an image view given another image of the same size is usually reported, while a label given other text of the same size usually is not. A Server need not ask the host app for its virtual nodes while checking, which would call into the host app at times it does not expect; a change of virtual nodes is then brought along when the subtree of their nearest layer ancestor is got again.
+
+P-WATCH-09 covers only what the modification itself brings, including the layout of P-SET-05 and the app's response that P-ENV-02 waits for. What the app does later in response, for example a reload it schedules on the main thread from a property observer, is reported as any other change, except that for `SetAttribute` it may fall within the time the Server counts as told. After `SetEnvironment` the Client gets the whole hierarchy again (see Environment), and events resume after that.
 
 ## App icon
 
