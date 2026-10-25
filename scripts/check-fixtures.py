@@ -9,11 +9,12 @@ addresses, class origins, known base classes and view controller visibility
 place among their siblings, and excluded subtrees (P-HIER-19 to 21, P-DET-10). Per scenario: request ids, stream sequencing and chunk counts (P-REQ-01, 03),
 one detail per requested layer (P-DET-01), what each detail contains against
 what was asked (P-DET-02 to 04), and every image's size and data (P-DET-07,
-P-IMG-01, 02). Every attribute's editing fields, section, limits, unit and
-system color name, and each layer's paired attributes, clusters and inactive
-causes (P-ATTR-06 to 16); light and dark colors and object references
-(P-ATTR-17, 18); the host app's groups, and one color for each registered
-name (P-ATTR-19, 20). The details of virtual nodes and excluded layers (P-DET-09, 10). Each plain
+P-IMG-01, 02); every image's digest, and unchanged images only in answer to
+the digest the request gave (P-IMG-04, 05). Every attribute's editing fields,
+section, limits, unit and system color name, and each layer's paired
+attributes, clusters and inactive causes (P-ATTR-06 to 16); light and dark
+colors and object references (P-ATTR-17, 18); the host app's groups, and one
+color for each registered name (P-ATTR-19, 20). The details of virtual nodes and excluded layers (P-DET-09, 10). Each plain
 request gets one response with its request id (P-REQ-02); a subtree is the
 hierarchy's subtree under the asked root (P-HIER-10, 11); and the answer to
 each SetAttribute is the one P-SET-01 to 03 and 07 call for, judged by the
@@ -44,7 +45,17 @@ def decompress(data):
     return result.stdout if result.returncode == 0 else None
 
 
-def check_image(where, image, bounds):
+def check_image(where, image, bounds, digests=None):
+    """digests is set for the images of a LayerDetail: the scenario's images by digest (P-IMG-04)."""
+    digest = image.get("digest")
+    if digest is not None and not 1 <= len(digest) <= 32:
+        problem(where, "a digest has 1 to 32 bytes (P-IMG-04)")
+    if image.get("unchanged", False):
+        if digest is None or set(image) - {"digest", "unchanged"}:
+            problem(where, "an unchanged image has a digest and nothing else (P-IMG-05)")
+        return
+    if digests is not None and digest is None:
+        problem(where, "every solo and group carries a digest (P-IMG-04)")
     width, height = image.get("pixel_width", 0), image.get("pixel_height", 0)
     row, scale = image.get("bytes_per_row", 0), image.get("scale", 0)
     if row < width * 4:
@@ -54,6 +65,11 @@ def check_image(where, image, bounds):
         problem(where, "data is not valid LZFSE (P-IMG-01)")
     elif len(raw) != row * height:
         problem(where, "data decompresses to %d bytes, expected %d (P-IMG-01)" % (len(raw), row * height))
+    elif digests is not None and digest is not None:
+        content = (image.get("encoding"), width, height, scale,
+                   b"".join(raw[y * row:y * row + width * 4] for y in range(height)))
+        if digests.setdefault(bytes(digest), content) != content:
+            problem(where, "two different images share a digest (P-IMG-04)")
     if bounds is not None and scale:
         size = bounds["size"]
         if abs(width / scale - size["width"]) > 0.5 or abs(height / scale - size["height"]) > 0.5:
@@ -514,6 +530,7 @@ def main():
     for scenario, frames in sorted(scenarios.items()):
         last_id, requests, streams, plain = 0, {}, {}, {}
         active, overrides, overridable = True, {}, None
+        digests = {}
         for name, frame in frames:
             where = "%s/%s" % (scenario, name)
             direction = name.split("-")[1]
@@ -634,7 +651,10 @@ def main():
                     check_constraints(spot, constraints, layer, nodes, constraint_ids, guide_ids)
                     for key in ("solo", "group"):
                         if key in detail:
-                            check_image("%s %s" % (spot, key), detail[key], nodes.get(layer, {}).get("bounds"))
+                            image = detail[key]
+                            check_image("%s %s" % (spot, key), image, nodes.get(layer, {}).get("bounds"), digests)
+                            if image.get("unchanged", False) and image.get("digest") != ask.get("known_%s_digest" % key):
+                                problem("%s %s" % (spot, key), "an unchanged image answers the digest the request gave (P-IMG-05)")
             elif kind == "StreamEnd":
                 stream = streams.get(request_id)
                 if stream is None:

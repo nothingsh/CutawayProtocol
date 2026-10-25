@@ -2,7 +2,7 @@
 
 The Cutaway protocol is the contract between CutawayServer (an SDK embedded in an iOS app) and Cutaway (a macOS app). The Server listens on a local port; once the Client connects, it retrieves the app's layer hierarchy, images, attributes and Auto Layout constraints by request and response, can modify attributes, and can override the app's trait environment. This document is normative: both implementations follow this document and `schema/cutaway.fbs`.
 
-Protocol version: 1.2
+Protocol version: 1.3
 
 Numbered paragraphs are normative clauses. "Must" and "must not" state requirements; "may" states what is allowed but not required. Everything else is explanation.
 
@@ -195,7 +195,7 @@ Virtual nodes let the Client select and inspect what the host app draws inside o
 
 **P-DET-05** When `max_texture_dimension` is not 0, neither side of an image may exceed it. Where one would, the Server must scale the image down proportionally and reduce `scale` accordingly.
 
-**P-DET-06** The Server must produce the `LayerDetail`s in the order of the request list. The total uncompressed pixel data of all images in one `LayerDetailsChunk` must not exceed 16777216 bytes (16 MiB); a single `LayerDetail` that exceeds this by itself takes a chunk of its own.
+**P-DET-06** The Server must produce the `LayerDetail`s in the order of the request list. The total uncompressed pixel data of all images in one `LayerDetailsChunk` must not exceed 16777216 bytes (16 MiB); a single `LayerDetail` that exceeds this by itself takes a chunk of its own. An unchanged image (P-IMG-05) has no pixel data and counts as none. (The last sentence since 1.3.)
 
 **P-DET-07** `solo` and `group` each cover exactly the layer's `bounds` rectangle: the image's top-left corner corresponds to `bounds.origin`, and the image's size in points equals `bounds.size`. Content outside `bounds` is not in the image. The image does not include the effects of the layer's own `opacity`, `hidden` and `transform`: it shows the layer at opacity 1, visible and untransformed. Sublayers in `group` are rendered with their own properties.
 
@@ -205,6 +205,8 @@ Virtual nodes let the Client select and inspect what the host app draws inside o
 
 **P-DET-10** `capture_excluded` true means the host app excludes this node and its subtree from images. It is given on the layer the host app excluded and on every node of its subtree, virtual nodes included; a host app cannot exclude a virtual node alone, since its appearance is drawn by its layer ancestor, so a virtual node has it only below an excluded layer. For such a node that exists, `status` is `Excluded`, also when no image was requested, and neither `solo` nor `group` is given; attributes and constraints are given as usual. In the images of every other layer, excluded layers are left out as if they were hidden. The Server may hide them while it captures, as long as the app's state after capturing is the same as before. When the negotiated minor version is 1.1, the Server still excludes them, and the `status` of such a node is `CaptureFailed` when `solo` or `group` was requested and `Ok` otherwise. (Since 1.2.)
 
+**P-DET-11** `known_solo_digest` and `known_group_digest` are the `digest` (P-IMG-04) of the `solo` and the `group` the Client holds for this layer, byte for byte as the Server sent them on this connection. The Client gives a digest only for an image it holds. The Server ignores a digest for an image that is not requested (`want_solo` or `want_group` false). A digest means something only on the connection it was sent on. (Since 1.3.)
+
 `want_solo`, `want_group`, `want_attributes` and `want_constraints` each say whether the corresponding content is wanted. A request with all four false still gets a `LayerDetail` that holds only `layer_id` and `status`.
 
 A host app excludes a view whose content is sensitive, or slow or impossible to capture (for example video or a map). The flag on every node lets the Client avoid requesting images it will not get, also after a `GetSubtree` of a node inside the subtree; `Excluded` tells it why when it does. Exclusion applies to the layers in the subtree: content the app copies elsewhere (for example a snapshot view, or a portal) is captured where it is shown.
@@ -213,11 +215,21 @@ What P-DET-07 means: the Client pins the image to the four corners of the layer'
 
 ## Images
 
-**P-IMG-01** Encoding `Bgra8PremultipliedLzfse`: pixels are BGRA with 8 bits per channel, premultiplied alpha, in the sRGB color space, in rows from top to bottom. `data` is the LZFSE compression of `bytes_per_row × pixel_height` bytes.
+**P-IMG-01** Encoding `Bgra8PremultipliedLzfse`: pixels are BGRA with 8 bits per channel, premultiplied alpha, in the sRGB color space, in rows from top to bottom. `data` is the LZFSE compression of `bytes_per_row × pixel_height` bytes. An unchanged image (P-IMG-05) has no `data`. (The last sentence since 1.3.)
 
 **P-IMG-02** `bytes_per_row` must be at least `pixel_width × 4`. The bytes of each row beyond `pixel_width × 4` are padding, with unspecified content.
 
 **P-IMG-03** `scale` is nominal: the number of pixels per point. Pixel sizes are rounded, so `pixel_width / scale` and `pixel_height / scale` may differ from the layer's `bounds.size` by up to one pixel, plus the rounding from representing `scale` as a `float`. The Client must pin the image to `bounds` as P-DET-07 says, and must not derive the layer's size from `scale`.
+
+**P-IMG-04** When the negotiated minor version is at least 1.3, every `solo` and `group` in a `LayerDetail` must carry a `digest` of 1 to 32 bytes; otherwise the Server may leave it out, and the image of `AppIcon` may always leave it out. A digest is opaque to the Client: the Client keeps it and sends it back as it is, and neither interprets nor computes it. Two images with the same `digest` on one connection must have the same `encoding`, `pixel_width`, `pixel_height` and `scale`, and the same pixels, not counting the padding of P-IMG-02, whichever layers and kinds of image they belong to. The algorithm is the Server's own and does not change within a connection. The digest is that of the image actually sent, after any scaling down under P-DET-05 and 08. (Since 1.3.)
+
+**P-IMG-05** When an entry of the request gives `known_solo_digest` (or `known_group_digest`), and the `solo` (or `group`) the Server is about to send for it has the same `digest`, the Server may send an unchanged image instead: `unchanged` true, `digest` the same as the request's, no `data`, and every other field at its default. The Server may also always send the full image. The Server sends an unchanged image only when the negotiated minor version is at least 1.3, since it changes what an absent `data` means (P-EVO-07). (Since 1.3.)
+
+**P-IMG-06** On receiving an unchanged image, the Client uses the image it holds. When it no longer holds that image, or the `digest` differs from the one it gave, it treats the image as not received. When the Server sends only `group` for a layer without sublayers (P-DET-04), an unchanged `group` stands for the absent `solo` as well. (Since 1.3.)
+
+A refresh usually finds most layers drawn exactly as before. The Server still renders every image it is asked for, but when the Client already holds the same one it sends an unchanged image instead, which saves the compression, the transfer, and the Client's decompression and texture upload. A request compares a layer's image only with the image of the same kind the Client holds for that layer: the Client keeps no cache by digest, and the Server remembers nothing of what it sent. P-IMG-04 still holds across the whole connection because of P-DET-04: the Client holds a leaf's `group` as its `solo` too, so a later `known_solo_digest` may be the digest of a `group`, compared with a `solo` once the layer has sublayers.
+
+A suggested algorithm: SHA-256 over `pixel_width` and `pixel_height` (4 bytes each, little-endian), `scale` (the 4 bytes of the `float`, little-endian) and `encoding` (1 byte), followed by the first `pixel_width × 4` bytes of each row of the decompressed pixels, keeping the first 16 bytes of the result. CryptoKit has SHA-256 from iOS 13, and comparing before compressing spares the compression as well. The chance that two different images share 16 bytes of SHA-256 is negligible; a checksum such as CRC does not meet P-IMG-04. The digests in the fixtures are computed this way. Like layer IDs (P-HIER-03), digests hold only within a connection: a Client drops every digest it holds when it reconnects.
 
 ## Attributes
 
