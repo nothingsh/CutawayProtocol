@@ -108,6 +108,8 @@ table Image {
   digest: [ubyte];
   // 1.3: the image is the one whose digest the Client sent; no pixels follow (P-IMG-05)
   unchanged: bool;
+  // 1.3: this group is taken from what the app composited (P-IMG-07)
+  composited: bool;
 }
 
 table GetAppIcon {}

@@ -1,0 +1,34 @@
+{
+  "request_id": 2,
+  "body_type": "LayerDetailsChunk",
+  "body": {
+    "sequence": 0,
+    "details": [
+      {
+        "layer_id": 1,
+        "status": "Ok",
+        "group": {
+          "digest": [
+            72,
+            215,
+            249,
+            178,
+            203,
+            11,
+            21,
+            54,
+            11,
+            29,
+            5,
+            79,
+            97,
+            76,
+            148,
+            110
+          ],
+          "unchanged": true
+        }
+      }
+    ]
+  }
+}

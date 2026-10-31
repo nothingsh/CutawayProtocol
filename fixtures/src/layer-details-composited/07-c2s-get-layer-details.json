@@ -1,0 +1,33 @@
+{
+  "request_id": 3,
+  "body_type": "GetLayerDetails",
+  "body": {
+    "requests": [
+      {
+        "layer_id": 1,
+        "want_solo": false,
+        "want_group": true,
+        "want_attributes": false,
+        "known_group_digest": [
+          72,
+          215,
+          249,
+          178,
+          203,
+          11,
+          21,
+          54,
+          11,
+          29,
+          5,
+          79,
+          97,
+          76,
+          148,
+          110
+        ]
+      }
+    ],
+    "max_texture_dimension": 16384
+  }
+}

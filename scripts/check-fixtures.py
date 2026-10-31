@@ -9,8 +9,8 @@ addresses, class origins, known base classes and view controller visibility
 place among their siblings, and excluded subtrees (P-HIER-19 to 21, P-DET-10). Per scenario: request ids, stream sequencing and chunk counts (P-REQ-01, 03),
 one detail per requested layer (P-DET-01), what each detail contains against
 what was asked (P-DET-02 to 04), and every image's size and data (P-DET-07,
-P-IMG-01, 02); every image's digest, and unchanged images only in answer to
-the digest the request gave (P-IMG-04, 05). Every attribute's editing fields,
+P-IMG-01, 02); every image's digest, unchanged images only in answer to the
+digest the request gave, and composited only on a group (P-IMG-04, 05, 07). Every attribute's editing fields,
 section, limits, unit and system color name, and each layer's paired
 attributes, clusters and inactive causes (P-ATTR-06 to 16); light and dark
 colors and object references (P-ATTR-17, 18); the host app's groups, and one
@@ -70,7 +70,7 @@ def check_image(where, image, bounds, digests=None):
     elif len(raw) != row * height:
         problem(where, "data decompresses to %d bytes, expected %d (P-IMG-01)" % (len(raw), row * height))
     elif digests is not None and digest is not None:
-        content = (image.get("encoding"), width, height, scale,
+        content = (image.get("encoding"), width, height, scale, image.get("composited", False),
                    b"".join(raw[y * row:y * row + width * 4] for y in range(height)))
         if digests.setdefault(bytes(digest), content) != content:
             problem(where, "two different images share a digest (P-IMG-04)")
@@ -691,6 +691,8 @@ def main():
                         if key in detail:
                             image = detail[key]
                             check_image("%s %s" % (spot, key), image, nodes.get(layer, {}).get("bounds"), digests)
+                            if key == "solo" and image.get("composited", False):
+                                problem("%s %s" % (spot, key), "only a group may be composited (P-IMG-07)")
                             if image.get("unchanged", False) and image.get("digest") != ask.get("known_%s_digest" % key):
                                 problem("%s %s" % (spot, key), "an unchanged image answers the digest the request gave (P-IMG-05)")
             elif kind == "StreamEnd":
@@ -711,6 +713,8 @@ def main():
                         problem(where, "details must follow the request order (P-DET-06)")
             elif kind == "AppIcon" and "image" in body:
                 check_image(where, body["image"], None)
+                if body["image"].get("composited", False):
+                    problem(where, "only a group may be composited (P-IMG-07)")
         for request_id, (asked, _) in plain.items():
             problem(scenario, "%s %d is never answered (P-REQ-02)" % (asked, request_id))
         for request_id, stream in streams.items():
