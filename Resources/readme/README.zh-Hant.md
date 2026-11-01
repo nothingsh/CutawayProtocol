@@ -39,8 +39,8 @@
 - **傳輸。** 伺服器僅在 loopback 上監聽 TCP，依序嘗試 48160 至 48167 號連接埠。模擬器與 Mac 共用 loopback；透過 USB 連接的裝置則經由 macOS 的 usbmuxd 存取，伺服器對此毫不知情。同一時間只接受一個用戶端。
 - **分幀。** 一幀由 4 位元組的 little-endian 長度 `N` 開頭，後接 `N` 個位元組，內含一個普通的 FlatBuffer，其根型別為 `Frame`、檔案識別碼為 `CTWY`。這**並非** FlatBuffers 的 size-prefixed 格式；`.stream` 夾具展示了確切的位元組。`N` 不得超過 256 MiB，接收端在讀取任何欄位之前須先驗證整個緩衝區。
 - **交握。** 用戶端的第一幀為 `Hello`；伺服器一律以自己的 `Hello` 回應。主版本號必須一致，否則雙方皆關閉連線。次版本號不同時，雙方以較低者運作。
-- **請求。** 用戶端指派單調遞增的 `request_id`。一般請求（`GetAppIcon`、`GetHierarchy`、`GetSubtree`、`SetAttribute`，以及 1.2 起的 `GetEnvironment` 與 `SetEnvironment`）恰好得到一個回應。`GetLayerDetails` 是串流：零或多個 `LayerDetailsChunk` 幀，最後接一個 `StreamEnd`。`Cancel` 可提前結束串流，本身沒有回應。伺服器依序處理請求。
-- **事件。** 伺服器在交握完成後，以及每當 App 的活躍狀態改變時，傳送 `request_id` 為 0 的 `AppStateChanged`。
+- **請求。** 用戶端指派單調遞增的 `request_id`。一般請求（`GetAppIcon`、`GetHierarchy`、`GetSubtree`、`SetAttribute`，以及 1.2 起的 `GetEnvironment` 與 `SetEnvironment`、1.3 起的 `WatchHierarchy`）恰好得到一個回應。`GetLayerDetails` 是串流：零或多個 `LayerDetailsChunk` 幀，最後接一個 `StreamEnd`。`Cancel` 可提前結束串流，本身沒有回應。伺服器依序處理請求。
+- **事件。** 伺服器在交握完成後，以及每當 App 的活躍狀態改變時，傳送 `request_id` 為 0 的 `AppStateChanged`。從 1.3 起，用戶端以 `WatchHierarchy` 開啟通知後，階層有一部分改變時伺服器還會傳送 `HierarchyChanged`；它只是提示，用戶端據此重新取得這一部分。
 - **錯誤。** `Error` 帶有穩定的 `ErrorCode` 與一段供人閱讀的訊息。用戶端依錯誤碼分支處理，絕不依訊息文字判斷。
 
 以上每一條規則都是 `PROTOCOL.md` 中的條款；此清單僅供快速了解。

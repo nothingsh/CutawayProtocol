@@ -39,8 +39,8 @@
 - **传输。** 服务端在 TCP 上监听，仅限回环地址，按顺序尝试 48160 到 48167 端口。模拟器与 Mac 共享回环地址；通过 USB 连接的设备经由 macOS 的 usbmuxd 访问，服务端对此毫不知情。同一时间只接受一个客户端。
 - **分帧。** 一帧由 4 字节小端序长度 `N` 和随后的 `N` 个字节组成，这 `N` 个字节是一个普通的 FlatBuffer，根类型为 `Frame`，文件标识符为 `CTWY`。这**不是** FlatBuffers 的带长度前缀格式；`.stream` 夹具展示了确切的字节。`N` 不得超过 256 MiB，接收方在读取任何字段之前须先校验整个缓冲区。
 - **握手。** 客户端发送的第一帧是 `Hello`；服务端总是以自己的 `Hello` 作答。主版本号必须一致，否则双方都会关闭连接。次版本号不同时，双方按较低的那个版本工作。
-- **请求。** 客户端分配单调递增的 `request_id`。普通请求（`GetAppIcon`、`GetHierarchy`、`GetSubtree`、`SetAttribute`，以及 1.2 起的 `GetEnvironment` 和 `SetEnvironment`）恰好得到一个响应。`GetLayerDetails` 是一个流：零个或多个 `LayerDetailsChunk` 帧，随后是一个 `StreamEnd`。`Cancel` 会提前结束一个流，它本身没有响应。服务端按顺序处理请求。
-- **事件。** 握手完成后，以及 App 的活跃状态每次变化时，服务端都会发送 `request_id` 为 0 的 `AppStateChanged`。
+- **请求。** 客户端分配单调递增的 `request_id`。普通请求（`GetAppIcon`、`GetHierarchy`、`GetSubtree`、`SetAttribute`，以及 1.2 起的 `GetEnvironment` 和 `SetEnvironment`、1.3 起的 `WatchHierarchy`）恰好得到一个响应。`GetLayerDetails` 是一个流：零个或多个 `LayerDetailsChunk` 帧，随后是一个 `StreamEnd`。`Cancel` 会提前结束一个流，它本身没有响应。服务端按顺序处理请求。
+- **事件。** 握手完成后，以及 App 的活跃状态每次变化时，服务端都会发送 `request_id` 为 0 的 `AppStateChanged`。从 1.3 起，客户端用 `WatchHierarchy` 打开通知后，层级有一部分变化时服务端还会发送 `HierarchyChanged`；它只是提示，客户端据此重新获取这一部分。
 - **错误。** `Error` 携带一个稳定的 `ErrorCode` 和一条供人阅读的消息。客户端根据错误码分支处理，绝不依据文本。
 
 以上每条规则都对应 `PROTOCOL.md` 中的一个条款；此列表仅供快速了解。
