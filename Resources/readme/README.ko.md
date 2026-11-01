@@ -39,8 +39,8 @@
 - **전송.** 서버는 루프백 전용으로 TCP에서 수신 대기하며, 포트 48160부터 48167까지 순서대로 시도합니다. 시뮬레이터는 Mac의 루프백을 공유하고, USB로 연결된 기기는 macOS의 usbmuxd를 통해 접근하는데, 서버는 이에 대해 전혀 알지 못합니다. 한 번에 하나의 클라이언트만 연결할 수 있습니다.
 - **프레이밍.** 프레임은 4바이트 리틀 엔디언 길이 `N`과 그 뒤를 잇는 `N`바이트로 구성되며, 이 `N`바이트에는 루트 타입이 `Frame`이고 파일 식별자가 `CTWY`인 일반 FlatBuffer 하나가 담깁니다. 이는 FlatBuffers의 size-prefixed 형식이 **아닙니다**. 정확한 바이트는 `.stream` 픽스처에서 확인할 수 있습니다. `N`은 256 MiB를 초과할 수 없으며, 수신 측은 어떤 필드든 읽기 전에 버퍼 전체를 검증합니다.
 - **핸드셰이크.** 클라이언트의 첫 프레임은 `Hello`이며, 서버는 항상 자신의 `Hello`로 응답합니다. 메이저 버전이 일치해야 하며, 일치하지 않으면 양쪽 모두 연결을 닫습니다. 마이너 버전이 다르면 양쪽 모두 더 낮은 버전으로 동작합니다.
-- **요청.** 클라이언트는 단조 증가하는 `request_id`를 할당합니다. 일반 요청(`GetAppIcon`, `GetHierarchy`, `GetSubtree`, `SetAttribute`, 1.2부터 `GetEnvironment`와 `SetEnvironment`)은 정확히 하나의 응답을 받습니다. `GetLayerDetails`는 스트림으로, 0개 이상의 `LayerDetailsChunk` 프레임 뒤에 `StreamEnd` 하나가 옵니다. `Cancel`은 스트림을 조기에 종료하며 그 자체에 대한 응답은 없습니다. 서버는 요청을 순서대로 처리합니다.
-- **이벤트.** 서버는 핸드셰이크 직후와 앱의 활성 상태가 바뀔 때마다 `request_id` 0으로 `AppStateChanged`를 보냅니다.
+- **요청.** 클라이언트는 단조 증가하는 `request_id`를 할당합니다. 일반 요청(`GetAppIcon`, `GetHierarchy`, `GetSubtree`, `SetAttribute`, 1.2부터 `GetEnvironment`와 `SetEnvironment`, 1.3부터 `WatchHierarchy`)은 정확히 하나의 응답을 받습니다. `GetLayerDetails`는 스트림으로, 0개 이상의 `LayerDetailsChunk` 프레임 뒤에 `StreamEnd` 하나가 옵니다. `Cancel`은 스트림을 조기에 종료하며 그 자체에 대한 응답은 없습니다. 서버는 요청을 순서대로 처리합니다.
+- **이벤트.** 서버는 핸드셰이크 직후와 앱의 활성 상태가 바뀔 때마다 `request_id` 0으로 `AppStateChanged`를 보냅니다. 1.3부터는 클라이언트가 `WatchHierarchy`로 알림을 켜면 계층 구조의 일부가 바뀔 때 `HierarchyChanged`도 보냅니다. 이는 해당 부분을 다시 가져오라는 힌트입니다.
 - **오류.** `Error`는 안정적인 `ErrorCode`와 사람이 읽을 수 있는 메시지를 담습니다. 클라이언트는 텍스트가 아니라 반드시 코드를 기준으로 분기해야 합니다.
 
 위의 모든 규칙은 `PROTOCOL.md`의 조항으로 정의되어 있으며, 이 목록은 개요일 뿐입니다.
